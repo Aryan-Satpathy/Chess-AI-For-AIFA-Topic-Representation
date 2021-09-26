@@ -1,4 +1,4 @@
-# Chess-AI-For-AIFA-Topic-Representation
+# Chess AI
 This is our work on AIFA Topic Representation.
 We planned to make a Chess AI. 
 Before we can start that, we need to first make the game itself.
