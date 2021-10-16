@@ -61,30 +61,32 @@ def getBoardFromFen(fen_board, np_board) :
 
 ######### Facing Some Difficulties With FEN, Imma Do It Later #########
 
-def getPawnMoves(np_board, start, turn, LegalMoves, dMul = 1, for_check_board = False) : 
+def getPawnMoves(np_board, start, turn, LegalMoves, i = None, dMul = 1, for_check_board = False) : 
     dMul *= [-1, 1][turn == (black >> 3)]
     direction = dMul * bdirection
     step1 = False
+    _start = [i, start][i == None]
     x, y = start
     if np_board[x, y + direction] == empty : 
-        LegalMoves.append((start, (x, y + direction)))
+        LegalMoves.append((_start, (x, y + direction)))
         step1 = True
     if np_board[x + 1, y + direction] != empty and (np_board[x + 1, y + direction] >> 3) != turn : 
-        LegalMoves.append((start, (x + 1, y + direction)))
+        LegalMoves.append((_start, (x + 1, y + direction)))
     if np_board[x - 1, y + direction] != empty and (np_board[x - 1, y + direction] >> 3) != turn : 
-        LegalMoves.append((start, (x - 1, y + direction)))
+        LegalMoves.append((_start, (x - 1, y + direction)))
     if step1 and (not for_check_board) and y == int(3.5 - 2.5 * direction) and np_board[x, y + 2 * direction] == empty :
-        LegalMoves.append((start, (x, y + 2 * direction)))
+        LegalMoves.append((_start, (x, y + 2 * direction)))
 
-def getRookMoves(np_board, start, turn, LegalMoves) : 
+def getRookMoves(np_board, start, turn, LegalMoves, i = None) : 
+    _start = [i, start][i == None]
     x, y = start
     for i in range(1, 8) :                                                  # Vertically Down
         if y + i >= 8 : 
             break
         if np_board[x, y + i] == empty:
-            LegalMoves.append((start, (x, y + i)))
+            LegalMoves.append((_start, (x, y + i)))
         elif np_board[x, y + i] >> 3 != turn : 
-            LegalMoves.append((start, (x, y + i)))
+            LegalMoves.append((_start, (x, y + i)))
             break
         else : 
             break
@@ -92,9 +94,9 @@ def getRookMoves(np_board, start, turn, LegalMoves) :
         if y - i < 0 : 
             break
         if np_board[x, y - i] == empty:
-            LegalMoves.append((start, (x, y - i)))
+            LegalMoves.append((_start, (x, y - i)))
         elif np_board[x, y - i] >> 3 != turn : 
-            LegalMoves.append((start, (x, y - i)))
+            LegalMoves.append((_start, (x, y - i)))
             break
         else : 
             break
@@ -102,9 +104,9 @@ def getRookMoves(np_board, start, turn, LegalMoves) :
         if x - i < 0 : 
             break
         if np_board[x - i, y] == empty:
-            LegalMoves.append((start, (x - i, y)))
+            LegalMoves.append((_start, (x - i, y)))
         elif np_board[x - i, y] >> 3 != turn : 
-            LegalMoves.append((start, (x - i, y)))
+            LegalMoves.append((_start, (x - i, y)))
             break
         else : 
             break
@@ -112,14 +114,15 @@ def getRookMoves(np_board, start, turn, LegalMoves) :
         if x + i >= 8 : 
             break
         if np_board[x + i, y] == empty:
-            LegalMoves.append((start, (x + i, y)))
+            LegalMoves.append((_start, (x + i, y)))
         elif np_board[x + i, y] >> 3 != turn : 
-            LegalMoves.append((start, (x + i, y)))
+            LegalMoves.append((_start, (x + i, y)))
             break
         else : 
             break
 
-def getKnightMoves(np_board, start, turn, LegalMoves) : 
+def getKnightMoves(np_board, start, turn, LegalMoves, i = None) : 
+    _start = [i, start][i == None]
     x, y = start
     relPos = [(1, 2), (1, -2), (-1, 2), (-1, -2), (2, 1), (2, -1), (-2, 1), (-2, -1)]
     for pos in relPos :
@@ -127,17 +130,18 @@ def getKnightMoves(np_board, start, turn, LegalMoves) :
         if not (0 <= x + delX <= 7 and 0 <= y + delY <= 7) : 
             continue
         if (np_board[x + delX, y + delY] >> 3 != turn) or np_board[x + delX, y + delY] == empty : 
-            LegalMoves.append((start, (x + delX, y + delY)))
+            LegalMoves.append((_start, (x + delX, y + delY)))
 
-def getBishopMoves(np_board, start, turn, LegalMoves) : 
+def getBishopMoves(np_board, start, turn, LegalMoves, i = None) : 
+    _start = [i, start][i == None]
     x, y = start
     for i in range(1, 8) :                                                  # Bottom Right
         if max(x + i, y + i) > 7 : 
             break
         if np_board[x + i, y + i] == empty:
-            LegalMoves.append((start, (x + i, y + i)))
+            LegalMoves.append((_start, (x + i, y + i)))
         elif np_board[x + i, y + i] >> 3 != turn : 
-            LegalMoves.append((start, (x + i, y + i)))
+            LegalMoves.append((_start, (x + i, y + i)))
             break
         else : 
             break
@@ -145,9 +149,9 @@ def getBishopMoves(np_board, start, turn, LegalMoves) :
         if x + i > 7 or y - i < 0 : 
             break
         if np_board[x + i, y - i] == empty:
-            LegalMoves.append((start, (x + i, y - i)))
+            LegalMoves.append((_start, (x + i, y - i)))
         elif np_board[x + i, y - i] >> 3 != turn : 
-            LegalMoves.append((start, (x + i, y - i)))
+            LegalMoves.append((_start, (x + i, y - i)))
             break
         else : 
             break
@@ -155,9 +159,9 @@ def getBishopMoves(np_board, start, turn, LegalMoves) :
         if x - i < 0 or y + i > 7 : 
             break
         if np_board[x - i, y + i] == empty:
-            LegalMoves.append((start, (x - i, y + i)))
+            LegalMoves.append((_start, (x - i, y + i)))
         elif np_board[x - i, y + i] >> 3 != turn : 
-            LegalMoves.append((start, (x - i, y + i)))
+            LegalMoves.append((_start, (x - i, y + i)))
             break
         else : 
             break
@@ -165,18 +169,19 @@ def getBishopMoves(np_board, start, turn, LegalMoves) :
         if min(x - i, y - i) < 0 : 
             break
         if np_board[x - i, y - i] == empty:
-            LegalMoves.append((start, (x - i, y - i)))
+            LegalMoves.append((_start, (x - i, y - i)))
         elif np_board[x - i, y - i] >> 3 != turn : 
-            LegalMoves.append((start, (x - i, y - i)))
+            LegalMoves.append((_start, (x - i, y - i)))
             break
         else : 
             break
 
-def getQueenMoves(np_board, start, turn, LegalMoves) : 
-    getBishopMoves(np_board, start, turn, LegalMoves)
-    getRookMoves(np_board, start, turn, LegalMoves)
+def getQueenMoves(np_board, start, turn, LegalMoves, i = None) : 
+    getBishopMoves(np_board, start, turn, LegalMoves, i)
+    getRookMoves(np_board, start, turn, LegalMoves, i)
 
-def getKingMoves(np_board, start, turn, LegalMoves) : 
+def getKingMoves(np_board, start, turn, LegalMoves, i = None) : 
+    _start = [i, start][i == None]
     x, y = start
     relPos = [(1, 0), (-1, 0), (0, 1), (0, -1), (1, 1), (1, -1), (-1, 1), (-1, -1)]
     for pos in relPos : 
@@ -184,42 +189,44 @@ def getKingMoves(np_board, start, turn, LegalMoves) :
         if not (0 <= x + delX <= 7 and 0 <= y + delY <= 7) : 
             continue
         if (np_board[x + delX, y + delY] >> 3 != turn) or np_board[x + delX, y + delY] == empty : 
-            LegalMoves.append((start, (x + delX, y + delY)))
+            LegalMoves.append((_start, (x + delX, y + delY)))
 
 def getFreeBoardLegalMoves(np_board, turn) :
     LegalMoves = [] 
     if turn == (black >> 3) :                                                           # Black
-        for start in black_pieces : 
+        for i in range(len(black_pieces)) :
+            start = black_pieces[i] 
             x, y = start
             if np_board[start] == black | pawn : 
-                getPawnMoves(np_board, start, turn, LegalMoves)
+                getPawnMoves(np_board, start, turn, LegalMoves, i)
             elif np_board[start] == black | rook : 
-                getRookMoves(np_board, start, turn, LegalMoves)
+                getRookMoves(np_board, start, turn, LegalMoves, i)
             elif np_board[start] == black | knight :
-                getKnightMoves(np_board, start, turn, LegalMoves)
+                getKnightMoves(np_board, start, turn, LegalMoves, i)
             elif np_board[start] == black | bishop : 
-                getBishopMoves(np_board, start, turn, LegalMoves)
+                getBishopMoves(np_board, start, turn, LegalMoves, i)
             elif np_board[start] == black | queen : 
-                getQueenMoves(np_board, start, turn, LegalMoves)
+                getQueenMoves(np_board, start, turn, LegalMoves, i)
             elif np_board[start] == black | king :
-                getKingMoves(np_board, start, turn, LegalMoves)
+                getKingMoves(np_board, start, turn, LegalMoves, i)
             else : 
                 print('Invalid Piece {} {}, Imma Yeet'.format(['black', 'white'][0], np_board[start]))
     else :                                                                              # White
-        for start in white_pieces : 
+        for i in range(len(white_pieces)) : 
+            start = white_pieces[i]
             x, y = start
             if np_board[start] == white | pawn : 
-                getPawnMoves(np_board, start, turn, LegalMoves)
+                getPawnMoves(np_board, start, turn, LegalMoves, i)
             elif np_board[start] == white | rook : 
-                getRookMoves(np_board, start, turn, LegalMoves)
+                getRookMoves(np_board, start, turn, LegalMoves, i)
             elif np_board[start] == white | knight :
-                getKnightMoves(np_board, start, turn, LegalMoves)
+                getKnightMoves(np_board, start, turn, LegalMoves, i)
             elif np_board[start] == white | bishop : 
-                getBishopMoves(np_board, start, turn, LegalMoves)
+                getBishopMoves(np_board, start, turn, LegalMoves, i)
             elif np_board[start] == white | queen : 
-                getQueenMoves(np_board, start, turn, LegalMoves)
+                getQueenMoves(np_board, start, turn, LegalMoves, i)
             elif np_board[start] == white | king :
-                getKingMoves(np_board, start, turn, LegalMoves)
+                getKingMoves(np_board, start, turn, LegalMoves, i)
             else : 
                 print('Invalid Piece {} {}, Imma Yeet'.format(['black', 'white'][1], np_board[start]))
 
@@ -235,17 +242,18 @@ def board_check(np_board, turn) :
     # Now logically checking for king is logically not required, but we are using it to make sure legal moves generated are correct
 
     # First we find the position of king
+
     KingPos = None
     if turn == (black >> 3) : 
         for piece in black_pieces : 
-            if np_board[piece] == black + king : 
+            if np_board[piece] == (black | king) : 
                 KingPos = piece
                 break
         else : 
             print("Warning, king of color black not found!")
     else : 
         for piece in white_pieces : 
-            if np_board[piece] == white + king : 
+            if np_board[piece] == (white | king) : 
                 KingPos = piece
                 break
         else : 
@@ -256,28 +264,28 @@ def board_check(np_board, turn) :
     getRookMoves(np_board, KingPos, turn, moves)
 
     for move in moves : 
-        if np_board[move] in [(1 - turn) << 3 + rook, (1 - turn) << 3 + queen] : 
+        if np_board[move[1]] in [((1 - turn) << 3) | rook, ((1 - turn) << 3) | queen] : 
             return True
     
     moves = []
     getBishopMoves(np_board, KingPos, turn, moves)
 
     for move in moves : 
-        if np_board[move] in [(1 - turn) << 3 + bishop, (1 - turn) << 3 + queen] : 
+        if np_board[move[1]] in [((1 - turn) << 3) | bishop, ((1 - turn) << 3) | queen] : 
             return True
         
     moves = []
     getKnightMoves(np_board, KingPos, turn, moves)
 
     for move in moves : 
-        if np_board[move] == (1 - turn) << 3 + knight : 
+        if np_board[move[1]] == (((1 - turn) << 3) | knight) : 
             return True
 
     moves = []
     getKingMoves(np_board, KingPos, turn, moves)
 
     for move in moves : 
-        if np_board[move] == (1 - turn) << 3 + king : 
+        if np_board[move[1]] == (((1 - turn) << 3) | king) : 
             return True
     
     # Now here's the catch. The logic would work because all of these pieces, if can go from A to B, then can also come from B to A
@@ -289,7 +297,7 @@ def board_check(np_board, turn) :
     getPawnMoves(np_board, KingPos, turn, moves, -1)
 
     for move in moves : 
-        if np_board[move] == (1 - turn) << 3 + pawn : 
+        if np_board[move[1]] == (((1 - turn) << 3) | pawn) : 
             return True
 
     return False
@@ -300,8 +308,16 @@ def getLegalMoves(np_board, turn) :
     tempLegalMoves = getFreeBoardLegalMoves(np_board, turn)
     LegalMoves = []
 
+    if turn == (black >> 3) : 
+        pieces = black_pieces
+        marker = 0
+    else : 
+        pieces = white_pieces
+        marker = 1
+
     for move in tempLegalMoves : 
-        start, end = move
+        i, end = move
+        start = pieces[i]
         # We simulate the move to make sure that !turn (i.e 1 - turn) doesnt kill the king of turn side
         # This ensures that if turn king is in check, he mustn't be in check after the move
         
@@ -309,9 +325,19 @@ def getLegalMoves(np_board, turn) :
         piece, piecef = np_board[start], np_board[end]
         np_board[start] = empty
         np_board[end] = piece
+        
+        if marker : 
+            white_pieces[i] = end
+        else :
+            black_pieces[i] = end
 
         if not board_check(np_board, turn) : 
-            LegalMoves.append(move)
+            LegalMoves.append((start, end))
+        
+        if marker : 
+            white_pieces[i] = start
+        else :
+            black_pieces[i] = start
         
         np_board[start], np_board[end] = piece, piecef
     
@@ -549,12 +575,13 @@ np_board[2, 1] = white | pawn
 np_board[4, 2] = white | pawn
 np_board[0, -1] = black | rook
 np_board[3, -1] = black | bishop
-np_board[5, -1] = black | king
+np_board[4, -1] = black | king
+np_board[5, -1] = black | queen
 np_board[6, -1] = black | knight
 np_board[2, -2] = black | pawn
 np_board[4, -3] = black | pawn
 
-black_pieces = [(0, 7), (3, 7), (5, 7), (6, 7), (2, 6), (4, 5)] 
+black_pieces = [(0, 7), (3, 7), (4, 7), (5, 7), (6, 7), (2, 6), (4, 5)] 
 white_pieces = [(0, 0), (3, 0), (5, 0), (6, 0), (2, 1), (4, 2)]
 
 # white_pieces = [(0, 0)]
@@ -565,8 +592,12 @@ LegalMoves = []
 getRookMoves(np_board, (0, 0), white >> 3, LegalMoves)
 print(LegalMoves)
 
-print("Legal moves for white : {}".format(getFreeBoardLegalMoves(np_board, white >> 3)))
-print("Legal moves for black : {}".format(getFreeBoardLegalMoves(np_board, black >> 3)))
+print("Free board moves for white : {}".format(getFreeBoardLegalMoves(np_board, white >> 3)))
+print("Free board moves for black : {}".format(getFreeBoardLegalMoves(np_board, black >> 3)))
+
+print('Is white on check?', board_check(np_board, white >> 3))
+
+print("Legal moves for white : {}".format(getLegalMoves(np_board, white >> 3)))
 
 placePiecesOnBoard(np_board)
 

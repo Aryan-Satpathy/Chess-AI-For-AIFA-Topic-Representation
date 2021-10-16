@@ -75,3 +75,7 @@ def Minimax(current_state, isMaximizing = True, depth = 3) :
 
     return best_move, best_score
 
+current_state = UI.np_board, UI.white_pieces, UI.black_pieces, UI.castleRights
+
+best_move, best_score = Minimax(current_state)
+print(best_move, best_score)
