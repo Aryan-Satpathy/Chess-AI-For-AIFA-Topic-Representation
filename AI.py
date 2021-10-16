@@ -9,8 +9,8 @@ def evaluation(current_state) :
     
     np_board, white_pieces, black_pieces, castling_rights = current_state
 
-    if UI.board_check(np_board, UI.white >> 3) : return -math.inf
-    elif UI.board_check(np_board, UI.black >> 3) : return math.inf
+    if UI.board_check(np_board, UI.white >> 3) : return -500
+    elif UI.board_check(np_board, UI.black >> 3) : return 500
 
     score = 0
 
@@ -44,38 +44,73 @@ def Minimax(current_state, isMaximizing = True, depth = 3) :
 
     np_board, white_pieces, black_pieces, castling_rights = current_state
 
-    best_move = None
+    best_move = []
     best_score = [math.inf, -math.inf][isMaximizing]
 
     Moves = UI.getLegalMoves(np_board, [UI.black >> 3, UI.white >> 3][isMaximizing])
 
+    if len(Moves) == 0 : 
+        print("Doomsday !!!")
+
     for move in Moves :
-        init, dest = move
+        i, dest = move
+        if isMaximizing :
+            init = white_pieces[i]
+        else :
+            init = black_pieces[i]
         
         buffer = np_board[dest]
         np_board[dest] = np_board[init]
         np_board[init] = UI.empty
+
+        if isMaximizing :
+            white_pieces[i] = dest
+            try : 
+                ind = black_pieces.index(dest)
+                black_pieces.pop(ind)
+            except :
+                ind = -1
+        else :
+            black_pieces[i] = dest
+            try : 
+                ind = white_pieces.index(dest)
+                white_pieces.pop(ind)
+            except :
+                ind = -1
 
         current_state = np_board, white_pieces, black_pieces, castling_rights
 
         if depth :
             next_best_move, next_best_score = Minimax(current_state, not isMaximizing, depth - 1)
         else :
-            next_best_move, next_best_score = None, evaluation(current_state)
+            next_best_move, next_best_score = [], evaluation(current_state)
 
+        if isMaximizing :
+            white_pieces[i] = init
+            if ind >= 0 :
+                black_pieces.insert(ind, dest)  
+        else :
+            black_pieces[i] = init
+            if ind >= 0 :
+                UI.white_pieces.insert(ind, dest)  
+        
         np_board[init] = np_board[dest]
         np_board[dest] = buffer
         buffer = UI.empty
 
         current_state = np_board, white_pieces, black_pieces, castling_rights
         
-        if (isMaximizing and best_score < next_best_score) or  (not isMaximizing and best_score > next_best_score) :
-            best_move = move
+        if (isMaximizing and best_score < next_best_score) or (not isMaximizing and best_score > next_best_score) :
+            best_move = [(init, dest)] + next_best_move
             best_score = next_best_score       
 
     return best_move, best_score
 
 current_state = UI.np_board, UI.white_pieces, UI.black_pieces, UI.castleRights
 
+print("Evaluation = ", evaluation(current_state))
+
 best_move, best_score = Minimax(current_state)
 print(best_move, best_score)
+
+UI.cv2.waitKey(0)

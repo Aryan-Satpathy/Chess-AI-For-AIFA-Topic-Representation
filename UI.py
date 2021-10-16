@@ -67,12 +67,12 @@ def getPawnMoves(np_board, start, turn, LegalMoves, i = None, dMul = 1, for_chec
     step1 = False
     _start = [i, start][i == None]
     x, y = start
-    if np_board[x, y + direction] == empty : 
+    if 0 <= (y + direction) < 8 and np_board[x, y + direction] == empty : 
         LegalMoves.append((_start, (x, y + direction)))
         step1 = True
-    if np_board[x + 1, y + direction] != empty and (np_board[x + 1, y + direction] >> 3) != turn : 
+    if 0 <= (x + 1) < 8 and 0 <= (y + direction) < 8 and np_board[x + 1, y + direction] != empty and (np_board[x + 1, y + direction] >> 3) != turn : 
         LegalMoves.append((_start, (x + 1, y + direction)))
-    if np_board[x - 1, y + direction] != empty and (np_board[x - 1, y + direction] >> 3) != turn : 
+    if 0 <= (x - 1) < 8 and 0 <= (y + direction) < 8 and np_board[x - 1, y + direction] != empty and (np_board[x - 1, y + direction] >> 3) != turn : 
         LegalMoves.append((_start, (x - 1, y + direction)))
     if step1 and (not for_check_board) and y == int(3.5 - 2.5 * direction) and np_board[x, y + 2 * direction] == empty :
         LegalMoves.append((_start, (x, y + 2 * direction)))
@@ -332,7 +332,8 @@ def getLegalMoves(np_board, turn) :
             black_pieces[i] = end
 
         if not board_check(np_board, turn) : 
-            LegalMoves.append((start, end))
+            # LegalMoves.append((start, end))
+            LegalMoves.append(move)
         
         if marker : 
             white_pieces[i] = start
@@ -604,3 +605,5 @@ placePiecesOnBoard(np_board)
 cv2.imshow('Board', canvas)
     
 cv2.waitKey(0)
+
+# cv2.destroyAllWindows()
