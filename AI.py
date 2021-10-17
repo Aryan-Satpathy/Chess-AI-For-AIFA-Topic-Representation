@@ -6,6 +6,9 @@ import time
 # p, kn, b, r, q
 eval_matrix = [1, 3, 5, 7, 9]
 
+def qsearch(current_state, isMaximizing) :
+    return evaluation(current_state)
+
 def evaluation(current_state) :
     
     np_board, white_pieces, black_pieces, castling_rights = current_state
@@ -84,7 +87,7 @@ def Minimax(current_state, isMaximizing = True, alpha = -math.inf, beta = math.i
         if depth :
             next_best_move, next_best_score = Minimax(current_state, not isMaximizing, alpha, beta, depth - 1)
         else :
-            next_best_move, next_best_score = [], evaluation(current_state)
+            next_best_move, next_best_score = [], qsearch(current_state, not isMaximizing)
 
         if isMaximizing :
             white_pieces[i] = init
@@ -120,7 +123,7 @@ current_state = UI.np_board, UI.white_pieces, UI.black_pieces, UI.castleRights
 print("Evaluation = ", evaluation(current_state))
 
 start = time.time()
-best_move, best_score = Minimax(current_state, depth = 5)
+best_move, best_score = Minimax(current_state, depth = 3)
 end = time.time()
 print(best_move, best_score, end - start)
 
