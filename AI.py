@@ -2,6 +2,7 @@ import UI
 import numpy as np
 import math
 import time
+import PIL
 
 # p, kn, b, r, q
 eval_matrix = [1, 3, 5, 7, 9]
