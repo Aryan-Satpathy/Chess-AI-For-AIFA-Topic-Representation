@@ -2,6 +2,7 @@ import UI
 import numpy as np
 import math
 import pandas
+import time
 
 # p, kn, b, r, q
 eval_matrix = [1, 3, 5, 7, 9]
@@ -41,7 +42,7 @@ def evaluation(current_state) :
 
     return score
 
-def Minimax(current_state, isMaximizing = True, depth = 3) :
+def Minimax(current_state, isMaximizing = True, alpha = -math.inf, beta = math.inf, depth = 3) :
 
     np_board, white_pieces, black_pieces, castling_rights = current_state
 
@@ -82,7 +83,7 @@ def Minimax(current_state, isMaximizing = True, depth = 3) :
         current_state = np_board, white_pieces, black_pieces, castling_rights
 
         if depth :
-            next_best_move, next_best_score = Minimax(current_state, not isMaximizing, depth - 1)
+            next_best_move, next_best_score = Minimax(current_state, not isMaximizing, alpha, beta, depth - 1)
         else :
             next_best_move, next_best_score = [], evaluation(current_state)
 
@@ -103,7 +104,15 @@ def Minimax(current_state, isMaximizing = True, depth = 3) :
         
         if (isMaximizing and best_score < next_best_score) or (not isMaximizing and best_score > next_best_score) :
             best_move = [(init, dest)] + next_best_move
-            best_score = next_best_score       
+            best_score = next_best_score 
+        
+        if (isMaximizing and best_score > alpha) :
+            alpha = best_score
+        if (not isMaximizing and best_score < beta) :
+            beta = best_score
+
+        if (isMaximizing and best_score >= beta) or (not isMaximizing and best_score <= alpha) :
+            break     
 
     return best_move, best_score
 
@@ -111,7 +120,9 @@ current_state = UI.np_board, UI.white_pieces, UI.black_pieces, UI.castleRights
 
 print("Evaluation = ", evaluation(current_state))
 
-best_move, best_score = Minimax(current_state)
-print(best_move, best_score)
+start = time.time()
+best_move, best_score = Minimax(current_state, depth = 5)
+end = time.time()
+print(best_move, best_score, end - start)
 
 UI.cv2.waitKey(0)
