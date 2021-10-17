@@ -1,7 +1,9 @@
 import UI
 import numpy as np
 import math
+import pandas
 import time
+import pandas
 
 # p, kn, b, r, q
 eval_matrix = [1, 3, 5, 7, 9]
