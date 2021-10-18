@@ -6,8 +6,93 @@ import time
 # p, kn, b, r, q
 eval_matrix = [1, 3, 5, 7, 9]
 
-def qsearch(current_state, isMaximizing) :
-    return evaluation(current_state)
+def isQuiet(current_state, isMaximizing) :
+    # Evaluation ain't changing much from this state
+    np_board, white_pieces, black_pieces, castling_rights = current_state
+
+    Moves = UI.getLegalMoves(np_board, [UI.black >> 3, UI.white >> 3][isMaximizing])
+
+    # if UI.board_check(np_board, int(isMaximizing)) :
+    #     return False
+
+    for move in Moves :
+        if np_board[move[1]] != UI.empty :
+            return False
+        
+    return True
+
+def qsearch(current_state, isMaximizing, alpha, beta, depth = 3) :
+    np_board, white_pieces, black_pieces, castling_rights = current_state
+
+    best_move = []
+    best_score = [math.inf, -math.inf][isMaximizing]
+
+    Moves = UI.getLegalMoves(np_board, [UI.black >> 3, UI.white >> 3][isMaximizing])
+
+    if len(Moves) == 0 : 
+        print("Doomsday !!!")
+
+    for move in Moves :
+        i, dest = move
+        if isMaximizing :
+            init = white_pieces[i]
+        else :
+            init = black_pieces[i]
+        
+        buffer = np_board[dest]
+        np_board[dest] = np_board[init]
+        np_board[init] = UI.empty
+
+        if isMaximizing :
+            white_pieces[i] = dest
+            try : 
+                ind = black_pieces.index(dest)
+                black_pieces.pop(ind)
+            except :
+                ind = -1
+        else :
+            black_pieces[i] = dest
+            try : 
+                ind = white_pieces.index(dest)
+                white_pieces.pop(ind)
+            except :
+                ind = -1
+
+        current_state = np_board, white_pieces, black_pieces, castling_rights
+
+        if depth == 0 or isQuiet(current_state, not isMaximizing) :
+            next_best_move, next_best_score = [], evaluation(current_state)
+        else :
+            next_best_move, next_best_score = qsearch(current_state, not isMaximizing, alpha, beta, depth - 1)
+
+        if isMaximizing :
+            white_pieces[i] = init
+            if ind >= 0 :
+                black_pieces.insert(ind, dest)  
+        else :
+            black_pieces[i] = init
+            if ind >= 0 :
+                UI.white_pieces.insert(ind, dest)  
+        
+        np_board[init] = np_board[dest]
+        np_board[dest] = buffer
+        buffer = UI.empty
+
+        current_state = np_board, white_pieces, black_pieces, castling_rights
+        
+        if (isMaximizing and best_score < next_best_score) or (not isMaximizing and best_score > next_best_score) :
+            best_move = [(init, dest)] + next_best_move
+            best_score = next_best_score 
+        
+        if (isMaximizing and best_score > alpha) :
+            alpha = best_score
+        if (not isMaximizing and best_score < beta) :
+            beta = best_score
+
+        if (isMaximizing and best_score >= beta) or (not isMaximizing and best_score <= alpha) :
+            break     
+
+    return best_move, best_score
 
 def evaluation(current_state) :
     
@@ -87,7 +172,7 @@ def Minimax(current_state, isMaximizing = True, alpha = -math.inf, beta = math.i
         if depth :
             next_best_move, next_best_score = Minimax(current_state, not isMaximizing, alpha, beta, depth - 1)
         else :
-            next_best_move, next_best_score = [], qsearch(current_state, not isMaximizing)
+            next_best_move, next_best_score = qsearch(current_state, not isMaximizing, alpha, beta, 1)
 
         if isMaximizing :
             white_pieces[i] = init
