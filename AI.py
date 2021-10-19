@@ -7,6 +7,8 @@ N = 0
 
 # p, kn, b, r, q, ki
 mobility_matrix = [2, 3, 3, 3, 3, 5]
+material_matrix = [1, 3, 3, 5, 7, 50]
+attack_matrix = [7, 3, 3, 3, 3, 1]
 
 def isQuiet(current_state, isMaximizing) :
     # Evaluation ain't changing much from this state
@@ -193,11 +195,45 @@ def evaluation(current_state) :
     return score3 * c_state + score2 * m_pieces + score1 * n_pieces
 '''
 
-def ordering_heuristics(moves) :
-    return moves 
+def ordering_heuristics(board : chess.Board, moves : chess.LegalMoveGenerator) :
+    L = []
+
+    for move in moves :
+        score = 0
+        myColor = board.color_at(move.from_square)
+        enemyColor = not myColor
+
+        if move.promotion != None : 
+            score += 50 * material_matrix[move.promotion - 1]
+        
+        if board.color_at(move.to_square) == enemyColor :
+            score += 5 * (material_matrix[board.piece_type_at(move.to_square) - 1] - material_matrix[board.piece_type_at(move.from_square) - 1])
+
+        attackers = board.attackers(enemyColor, move.to_square)
+
+        for attacker in attackers :
+            score -= 2 * attack_matrix[board.piece_type_at(attacker) - 1]
+
+        attackers = board.attackers(myColor, move.to_square)
+
+        for attacker in attackers :
+            score += 2 * attack_matrix[board.piece_type_at(attacker) - 1]
+        
+        L.append((score, move))
+    
+    L.sort(key = lambda tup : tup[0], reverse=True)
+
+    return L
 
 def evaluation(board : chess.Board) : 
     score = 0
+
+    score += 3 * material_matrix[0] * (len(board.pieces(chess.PAWN, chess.WHITE)) - len(board.pieces(chess.PAWN, chess.BLACK)))
+    score += 3 * material_matrix[1] * (len(board.pieces(chess.KNIGHT, chess.WHITE)) - len(board.pieces(chess.KNIGHT, chess.BLACK)))
+    score += 3 * material_matrix[2] * (len(board.pieces(chess.BISHOP, chess.WHITE)) - len(board.pieces(chess.BISHOP, chess.BLACK)))
+    score += 3 * material_matrix[3] * (len(board.pieces(chess.ROOK, chess.WHITE)) - len(board.pieces(chess.ROOK, chess.BLACK)))
+    score += 3 * material_matrix[4] * (len(board.pieces(chess.QUEEN, chess.WHITE)) - len(board.pieces(chess.QUEEN, chess.BLACK)))
+
     moves = board.generate_pseudo_legal_moves()
 
     for move in moves :
@@ -220,10 +256,15 @@ def Minimax(board, isMaximizing = True, alpha = -math.inf, beta = math.inf, dept
     
     best_move, best_score = [], [-1000, 1000][not isMaximizing]
 
-    for move in board.legal_moves :
+    moves = board.legal_moves
+    moves = ordering_heuristics(board, moves)
+
+    for move in moves :
+        waste, move = move
         board.push(move)
 
         bm, bs = Minimax(board, not isMaximizing, alpha, beta, depth - 1)
+        bs += 0.5 * waste
 
         board.pop()
 
@@ -249,19 +290,33 @@ def Minimax(board, isMaximizing = True, alpha = -math.inf, beta = math.inf, dept
 board = chess.Board('rnbqkb1r/pp2pppp/3p1n2/8/3NP3/8/PPP2PPP/RNBQKB1R w KQkq - 1 5')
 
 board.push_uci('b1c3')
-board.push_uci('a7a6e5d4')
+board.push_uci('a7a6')
 
-for i in range(10) : 
+print("before : ")
+print(board)
+
+
+for i in range(1) : 
     if board.turn : 
         start = time.time()
         # score = evaluation(board)
-        best_move, best_score = Minimax(board, True, depth = 6) 
+        best_move, best_score = Minimax(board, True, depth = 4) 
         end = time.time()
         print("best_move, score, time = ", best_move, best_score, end - start)
         board.push(best_move[0])
     else :
         response = input('Enter enemy move : ')
         board.push_uci(response)
+
+'''
+start = time.time()
+moves = ordering_heuristics(board, board.legal_moves)
+end = time.time()
+print('moves, time : ', moves, end - start)
+
+print("after : ")
+print(board)
+'''
 '''
 print(end - start)
 start = time.time()
