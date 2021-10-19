@@ -1,6 +1,5 @@
 import time
 import math
-import random
 import chess
 
 N = 0
@@ -87,6 +86,7 @@ def isQuiet(current_state, isMaximizing) :
     
     return True
 
+'''
 def qsearch(current_state, isMaximizing, alpha, beta, depth = 3) :
     np_board, white_pieces, black_pieces, castling_rights = current_state
 
@@ -182,7 +182,7 @@ def qsearch(current_state, isMaximizing, alpha, beta, depth = 3) :
         best_score = evaluation(current_state)
 
     return best_move, best_score
-
+'''
 '''
 def evaluation(current_state) :
     ## Total evaluation will be based on the weighted sum of evaluation of each of the factors.
@@ -287,14 +287,47 @@ def ordering_heuristics(board : chess.Board, moves : chess.LegalMoveGenerator) :
 
     return L
 
-def evaluation(board : chess.Board) : 
-    score = 0
+def qsearch(board : chess.Board, isMaximizing, alpha = -math.inf, beta = math.inf, depth = 3) :
 
-    score += 3 * material_matrix[0] * (len(board.pieces(chess.PAWN, chess.WHITE)) - len(board.pieces(chess.PAWN, chess.BLACK)))
-    score += 3 * material_matrix[1] * (len(board.pieces(chess.KNIGHT, chess.WHITE)) - len(board.pieces(chess.KNIGHT, chess.BLACK)))
-    score += 3 * material_matrix[2] * (len(board.pieces(chess.BISHOP, chess.WHITE)) - len(board.pieces(chess.BISHOP, chess.BLACK)))
-    score += 3 * material_matrix[3] * (len(board.pieces(chess.ROOK, chess.WHITE)) - len(board.pieces(chess.ROOK, chess.BLACK)))
-    score += 3 * material_matrix[4] * (len(board.pieces(chess.QUEEN, chess.WHITE)) - len(board.pieces(chess.QUEEN, chess.BLACK)))
+    if depth == 0 :
+        return [], evaluation(board)
+
+    best_move, best_score = [], [-1000, 1000][not isMaximizing]
+    
+    moves = board.generate_legal_captures()
+
+    moves = ordering_heuristics(board, moves)
+
+    if len(moves) == 0 :
+        return [], evaluation(board)
+
+    for move in moves :
+        waste, move = move
+        board.push(move)
+
+        bm, bs = qsearch(board, not isMaximizing, alpha, beta, depth - 1)
+        bs += [-0.5, 0.5][isMaximizing] * waste
+
+        board.pop()
+
+        if (isMaximizing and best_score < bs) or (not isMaximizing and best_score > bs) :
+            best_move = [move] + bm
+            best_score = bs 
+        
+        if (isMaximizing and best_score > alpha) :
+            alpha = best_score
+        if (not isMaximizing and best_score < beta) :
+            beta = best_score
+
+        if (isMaximizing and best_score >= beta) or (not isMaximizing and best_score <= alpha) :
+            break     
+
+    return best_move, best_score
+
+def evaluation(board : chess.Board) : 
+    global N 
+    N += 1
+    score = 0
 
     moves = board.generate_pseudo_legal_moves()
 
@@ -308,14 +341,14 @@ def evaluation(board : chess.Board) :
         piece = pieces[pos]
         score += material_matrix[piece.piece_type - 1] * complex_material_matrix[piece.piece_type - 1][[-1 - pos, pos][piece.color]]
 
-    score += 200 * board.is_attacked_by(chess.WHITE, board.king(chess.BLACK))
-    score -= 200 * board.is_attacked_by(chess.BLACK, board.king(chess.WHITE))
+    # score += 200 * board.is_attacked_by(chess.WHITE, board.king(chess.BLACK))
+    # score -= 200 * board.is_attacked_by(chess.BLACK, board.king(chess.WHITE))
     
     return score
 
 def Minimax(board, isMaximizing = True, alpha = -math.inf, beta = math.inf, depth = 6) :
     if depth == 0 : 
-        return [], evaluation(board)
+        return qsearch(board, isMaximizing, alpha, beta, 3)
     
     if board.is_checkmate() : 
         return [], -1000
@@ -355,10 +388,11 @@ def Minimax(board, isMaximizing = True, alpha = -math.inf, beta = math.inf, dept
 
 # OG Fen : r2bkqn1/2p5/4p3/8/8/4P3/2P5/R2B1KN1 w - - 0 1
 # interesting fen : rnbqkbnr/pp2pppp/3p4/8/3NP3/8/PPP2PPP/RNBQKB1R b KQkq - 0 4
-board = chess.Board('rnbqkb1r/pp2pppp/3p1n2/8/3NP3/8/PPP2PPP/RNBQKB1R w KQkq - 1 5')
+board = chess.Board('rnbqkb1r/1p2pppp/p2p1n2/8/3NP3/2N5/PPP2PPP/R1BQKB1R w KQkq - 1 5')
+# board = chess.Board('r2bkqn1/2p5/4p3/8/8/4P3/2P5/R2B1KN1 w - - 0 1')
 
-board.push_uci('b1c3')
-board.push_uci('a7a6')
+# board.push_uci('b1c3')
+# board.push_uci('a7a6')
 
 print("before : ")
 print(board)
@@ -368,13 +402,15 @@ for i in range(1) :
     if board.turn : 
         start = time.time()
         # score = evaluation(board)
-        best_move, best_score = Minimax(board, True, depth = 6) 
+        best_move, best_score = Minimax(board, True, depth = 5) 
         end = time.time()
         print("best_move, score, time = ", best_move, best_score, end - start)
         board.push(best_move[0])
     else :
         response = input('Enter enemy move : ')
         board.push_uci(response)
+
+print("number of positions evaluated : ", N)
 
 '''
 start = time.time()
