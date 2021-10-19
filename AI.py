@@ -5,9 +5,71 @@ import chess
 
 N = 0
 
+king_mob_matrix = [
+    -3,-4,-4,-5,-5,-4,-4,-3,
+    -3,-4,-4,-5,-5,-4,-4,-3,
+    -3,-4,-4,-5,-5,-4,-4,-3,
+    -3,-4,-4,-5,-5,-4,-4,-3,
+    -2,-3,-3,-4,-4,-3,-3,-2,
+    -1,-2,-2,-2,-2,-2,-2,-1,
+    2,2,0,0,0,0,2,2,
+    2,3,1,0,0,1,3,2
+]
+queen_mob_matrix = [
+    -2,-1,-1,-0.5,-0.5,-1,-1,-2,
+    -1,0,0,0,0,0,0,-1,
+    -1,0,0.5,0.5,0.5,0.5,0,-1,
+    -0.5,0,0.5,0.5,0.5,0.5,0,-0.5,
+    0,0,0.5,0.5,0.5,0.5,0,-0.5,
+    -1,0.5,0.5,0.5,0.5,0.5,0,-1,
+    -1,0,0.5,0,0,0,0,-1,
+    -2,-1,-1,-0.5,-0.5,-1,-1,-2
+]
+bishop_mob_matrix = [
+    -2,-1,-1,-1,-1,-1,-1,-2,
+    -1,0,0,0,0,0,0,-1,
+    -1,0,0.5,1,1,0.5,0,-1,
+    -1,0.5,0.5,1,1,0.5,0.5,-1,
+    -1,0,1,1,1,1,0,-1,
+    -1,1,1,1,1,1,1,-1,
+    -1,0.5,0,0,0,0,0.5,-1,
+    -2,-1,-1,-1,-1,-1,-1,-2
+]
+knight_mob_matrix = [
+    -5,-4,-3,-3,-3,-3,-4,-5,
+    -4,-2,0,0,0,0,-2,-4,
+    -3,0,1,1.5,1.5,1,0,-3,
+    -3,0.5,1.5,2,2,1.5,0.5,-3,
+    -3,0,1.5,2,2,1.5,0,-3,
+    -3,0.5,1,1.5,1.5,1,0.5,-3,
+    -4,-2,0,0.5,0.5,0,-2,-4,
+    -5,-4,-3,-3,-3,-3,-4,-5
+]
+rook_mob_matrix = [
+    0,0,0,0,0,0,0,0,
+    0.5,1,1,1,1,1,1,0.5,
+    -0.5,0,0,0,0,0,0,-0.5,
+    -0.5,0,0,0,0,0,0,-0.5,
+    -0.5,0,0,0,0,0,0,-0.5,
+    -0.5,0,0,0,0,0,0,-0.5,
+    -0.5,0,0,0,0,0,0,-0.5,
+    0,0,0,0.5,0.5,0,0,0
+]
+pawn_mob_matrix = [
+    -2,-1,-1,-1,-1,-1,-1,-2,
+    -1,0,0,0,0,0,0,-1,
+    -1,0,0.5,1,1,0.5,0,-1,
+    -1,0.5,0.5,1,1,0.5,0.5,-1,
+    -1,0,1,1,1,1,0,-1,
+    -1,1,1,1,1,1,1,-1,
+    -1,0.5,0,0,0,0,0.5,-1,
+    -2,-1,-1,-1,-1,-1,-1,-2
+]
+
 # p, kn, b, r, q, ki
 mobility_matrix = [2, 3, 3, 3, 3, 5]
 material_matrix = [1, 3, 3, 5, 7, 50]
+complex_material_matrix = [pawn_mob_matrix, knight_mob_matrix, bishop_mob_matrix, rook_mob_matrix, queen_mob_matrix, king_mob_matrix]
 attack_matrix = [7, 3, 3, 3, 3, 1]
 
 def isQuiet(current_state, isMaximizing) :
@@ -240,6 +302,12 @@ def evaluation(board : chess.Board) :
         piece = board.piece_at(move.from_square)
         score += [-1, 1][piece.color] * mobility_matrix[piece.piece_type - 1]
 
+    pieces = board.piece_map()
+
+    for pos in pieces :
+        piece = pieces[pos]
+        score += material_matrix[piece.piece_type - 1] * complex_material_matrix[piece.piece_type - 1][[-1 - pos, pos][piece.color]]
+
     score += 200 * board.is_attacked_by(chess.WHITE, board.king(chess.BLACK))
     score -= 200 * board.is_attacked_by(chess.BLACK, board.king(chess.WHITE))
     
@@ -264,7 +332,7 @@ def Minimax(board, isMaximizing = True, alpha = -math.inf, beta = math.inf, dept
         board.push(move)
 
         bm, bs = Minimax(board, not isMaximizing, alpha, beta, depth - 1)
-        bs += 0.5 * waste
+        bs += [-0.5, 0.5][isMaximizing] * waste
 
         board.pop()
 
@@ -300,7 +368,7 @@ for i in range(1) :
     if board.turn : 
         start = time.time()
         # score = evaluation(board)
-        best_move, best_score = Minimax(board, True, depth = 4) 
+        best_move, best_score = Minimax(board, True, depth = 6) 
         end = time.time()
         print("best_move, score, time = ", best_move, best_score, end - start)
         board.push(best_move[0])
