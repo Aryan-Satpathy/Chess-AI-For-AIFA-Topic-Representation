@@ -191,7 +191,7 @@ def getKingMoves(np_board, start, turn, LegalMoves, i = None) :
         if (np_board[x + delX, y + delY] >> 3 != turn) or np_board[x + delX, y + delY] == empty : 
             LegalMoves.append((_start, (x + delX, y + delY)))
 
-def getFreeBoardLegalMoves(np_board, turn) :
+def getFreeBoardLegalMoves(np_board, white_pieces, black_pieces, turn) :
     LegalMoves = [] 
     if turn == (black >> 3) :                                                           # Black
         for i in range(len(black_pieces)) :
@@ -232,7 +232,7 @@ def getFreeBoardLegalMoves(np_board, turn) :
 
     return LegalMoves
 
-def board_check(np_board, turn) : 
+def board_check(np_board, white_pieces, black_pieces, turn) : 
     # Idea is to check in a reverse way instead of checking all available moves of !turn (i.e, 1 - turn) and checking if turn king lies in any end position in the list
     # So we will do knight move generation from king and check if a !turn knight is in any of the end positions
     # We will do rook move generation from king and check if a !turn rook / queen is in any of the end positions
@@ -302,10 +302,10 @@ def board_check(np_board, turn) :
 
     return False
 
-def getLegalMoves(np_board, turn) : 
+def getLegalMoves(np_board, white_pieces, black_pieces, turn) : 
     # We will check separately for Free Board Moves and Special Moves
     # Free Board Moves
-    tempLegalMoves = getFreeBoardLegalMoves(np_board, turn)
+    tempLegalMoves = getFreeBoardLegalMoves(np_board, white_pieces, black_pieces, turn)
     LegalMoves = []
 
     if turn == (black >> 3) : 
@@ -331,7 +331,7 @@ def getLegalMoves(np_board, turn) :
         else :
             black_pieces[i] = end
 
-        if not board_check(np_board, turn) : 
+        if not board_check(np_board, white_pieces, black_pieces, turn) : 
             # LegalMoves.append((start, end))
             LegalMoves.append(move)
         
@@ -593,12 +593,12 @@ LegalMoves = []
 getRookMoves(np_board, (0, 0), white >> 3, LegalMoves)
 print(LegalMoves)
 
-print("Free board moves for white : {}".format(getFreeBoardLegalMoves(np_board, white >> 3)))
-print("Free board moves for black : {}".format(getFreeBoardLegalMoves(np_board, black >> 3)))
+print("Free board moves for white : {}".format(getFreeBoardLegalMoves(np_board, white_pieces, black_pieces, white >> 3)))
+print("Free board moves for black : {}".format(getFreeBoardLegalMoves(np_board, white_pieces, black_pieces, black >> 3)))
 
-print('Is white on check?', board_check(np_board, white >> 3))
+print('Is white on check?', board_check(np_board, white_pieces, black_pieces, white >> 3))
 
-print("Legal moves for white : {}".format(getLegalMoves(np_board, white >> 3)))
+print("Legal moves for white : {}".format(getLegalMoves(np_board, white_pieces, black_pieces, white >> 3)))
 
 placePiecesOnBoard(np_board)
 
@@ -606,4 +606,4 @@ cv2.imshow('Board', canvas)
     
 cv2.waitKey(0)
 
-# cv2.destroyAllWindows()
+cv2.destroyAllWindows()
