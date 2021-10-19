@@ -192,6 +192,10 @@ def evaluation(current_state) :
 
     return score3 * c_state + score2 * m_pieces + score1 * n_pieces
 '''
+
+def ordering_heuristics(moves) :
+    return moves 
+
 def evaluation(board : chess.Board) : 
     score = 0
     moves = board.generate_pseudo_legal_moves()
@@ -205,7 +209,7 @@ def evaluation(board : chess.Board) :
     
     return score
 
-def Minimax(board, isMaximizing = True, alpha = -math.inf, beta = math.inf, depth = 5) :
+def Minimax(board, isMaximizing = True, alpha = -math.inf, beta = math.inf, depth = 6) :
     if depth == 0 : 
         return [], evaluation(board)
     
@@ -240,13 +244,24 @@ def Minimax(board, isMaximizing = True, alpha = -math.inf, beta = math.inf, dept
 # current_state = UI.np_board, UI.white_pieces, UI.black_pieces, UI.castleRights
 # print("Evaluation = ", evaluation(current_state))
 
-board = chess.Board('r2bkqn1/2p5/4p3/8/8/4P3/2P5/R2B1KN1 w - - 0 1')
+# OG Fen : r2bkqn1/2p5/4p3/8/8/4P3/2P5/R2B1KN1 w - - 0 1
+# interesting fen : rnbqkbnr/pp2pppp/3p4/8/3NP3/8/PPP2PPP/RNBQKB1R b KQkq - 0 4
+board = chess.Board('rnbqkb1r/pp2pppp/3p1n2/8/3NP3/8/PPP2PPP/RNBQKB1R w KQkq - 1 5')
 
-start = time.time()
-# score = evaluation(board)
-best_move, best_score = Minimax(board, depth = 6) 
-end = time.time()
-print("best_move, score, time = ", best_move, best_score, end - start)
+board.push_uci('b1c3')
+board.push_uci('a7a6e5d4')
+
+for i in range(10) : 
+    if board.turn : 
+        start = time.time()
+        # score = evaluation(board)
+        best_move, best_score = Minimax(board, True, depth = 6) 
+        end = time.time()
+        print("best_move, score, time = ", best_move, best_score, end - start)
+        board.push(best_move[0])
+    else :
+        response = input('Enter enemy move : ')
+        board.push_uci(response)
 '''
 print(end - start)
 start = time.time()

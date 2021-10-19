@@ -1,3 +1,35 @@
+Skip to content
+Search or jump to…
+Pulls
+Issues
+Marketplace
+Explore
+ 
+@Aryan-Satpathy 
+Aryan-Satpathy
+/
+Chess-AI-For-AIFA-Topic-Representation
+Public
+2
+20
+Code
+Issues
+Pull requests
+1
+Actions
+Projects
+Wiki
+Security
+Insights
+More
+Chess-AI-For-AIFA-Topic-Representation/UI.py /
+@Aryan-Satpathy
+Aryan-Satpathy CoMpLeTe ReWoRk
+Latest commit 1c5e375 9 minutes ago
+ History
+ 1 contributor
+609 lines (531 sloc)  23 KB
+   
 # Change 1
 
 import cv2
@@ -379,7 +411,6 @@ def overlayImage(back, front) :
     canvas =  canvas.astype(np.uint8)
     '''
     cv2.imshow('test', canvas)
-
     cv2.waitKey(50)
     '''
     return canvas
