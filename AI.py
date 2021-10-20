@@ -68,10 +68,10 @@ pawn_mob_matrix = [
 ]
 
 # p, kn, b, r, q, ki
-mobility_matrix = [1, 5, 3.5, 3, 3, 1]
+mobility_matrix = [1, 2, 2.5, 2, 2.5, 0.5]
 material_matrix = [1, 3, 3, 5, 7, 90]
 complex_material_matrix = [pawn_mob_matrix, knight_mob_matrix, bishop_mob_matrix, rook_mob_matrix, queen_mob_matrix, king_mob_matrix]
-attack_matrix = [14, 4, 4, 4, 4, 1]
+attack_matrix = [5, 1, 1, 1, 1, 0.2]
 
 TT = [[int(random.getrandbits(64)) for i in range(64)] for j in range(12)]
 CTT = [int(random.getrandbits(64)) for i in range(4)]
@@ -385,7 +385,7 @@ def qsearch(board : chess.Board, board_hash : int, isMaximizing, alpha = -math.i
             bm, bs = qsearch(board, not isMaximizing, alpha, beta, max(depth - 3, 0))
         '''
         bm, bs = qsearch(board, new_hash, not isMaximizing, alpha, beta, depth - 1)
-        bs += [-0.3, 0.3][isMaximizing] * waste
+        bs += [-1, 1][isMaximizing] * waste
 
         board.pop()
 
@@ -415,16 +415,28 @@ def evaluation(board : chess.Board, hash_ind : int) :
     if Small_Lut.get(hash_ind, None) != None :
         return Small_Lut[hash_ind]
 
+    '''
+    moves = board.generate_pseudo_legal_moves()
+
+    for move in moves :
+        piece = board.piece_at(move.from_square)
+        score += [-1, 1][piece.color] * mobility_matrix[piece.piece_type - 1]    
+
+    board.turn = not board.turn
     moves = board.generate_pseudo_legal_moves()
 
     for move in moves :
         piece = board.piece_at(move.from_square)
         score += [-1, 1][piece.color] * mobility_matrix[piece.piece_type - 1]    
     
+    board.turn = not board.turn
+    '''
+
     pieces = board.piece_map()
 
     for pos in pieces :
         piece = pieces[pos]
+        score += [-1, 1][piece.color] * mobility_matrix[piece.piece_type - 1] * len(board.attacks(pos))
         score += [-1, 1][piece.color] * material_matrix[piece.piece_type - 1] * complex_material_matrix[piece.piece_type - 1][[-1 - pos, pos][piece.color]]
         if piece.piece_type != chess.KING :
             attackers = board.attackers(piece.color, pos)
@@ -448,7 +460,7 @@ def evaluation(board : chess.Board, hash_ind : int) :
 
 def Minimax(board, board_hash : int, isMaximizing = True, alpha = -math.inf, beta = math.inf, depth = 6) :
     if depth == 0 : 
-        return qsearch(board, board_hash, isMaximizing, alpha, beta, 2)
+        return qsearch(board, board_hash, isMaximizing, alpha, beta, 3)
     
     if board.is_checkmate() : 
         return [], -1000
@@ -478,7 +490,7 @@ def Minimax(board, board_hash : int, isMaximizing = True, alpha = -math.inf, bet
             bm, bs = Minimax(board, not isMaximizing, alpha, beta, max(depth - 3, 0))
         '''
         bm, bs = Minimax(board, new_hash, not isMaximizing, alpha, beta, (depth - 1))
-        bs += [-0.3, 0.3][isMaximizing] * waste
+        bs += [-1, 1][isMaximizing] * waste
 
         board.pop()
 
@@ -509,25 +521,35 @@ board = chess.Board('rnbqkb1r/1p2pppp/p2p1n2/8/3NP3/2N5/PPP2PPP/R1BQKB1R w KQkq 
 # board.push_uci('b1c3')
 # board.push_uci('a7a6')
 
+board.push_uci('f1e2')
+# board.push_uci('e7e6')
+
 print("before : ")
 print(board)
 
-
 for i in range(1) : 
-    if board.turn : 
-        start = time.time()
-        # score = evaluation(board)
-        best_move, best_score = Minimax(board, True, depth = 6) 
-        end = time.time()
-        print("best_move, score, time = ", best_move, best_score, end - start)
-        board.push(best_move[0])
-    else :
-        response = input('Enter enemy move : ')
-        board.push_uci(response)
+    # if board.turn : 
+    start = time.time()
+    # score = evaluation(board)
+    best_move, best_score = Minimax(board, False, depth = 5) 
+    end = time.time()
+    print("best_move, score, time = ", best_move, best_score, end - start)
+    board.push(best_move[0])
+    # else :
+    #     response = input('Enter enemy move : ')
+    #     board.push_uci(response)
+
+print('After : ')
+print(board)
 
 print("number of positions evaluated : ", N)
 print("number of transposition entries : ", TT_len)
 
+
+'''
+l, moves = ordering_heuristics(board, board.legal_moves)
+print('best move eval : ', moves)
+'''
 
 '''
 start = time.time()
