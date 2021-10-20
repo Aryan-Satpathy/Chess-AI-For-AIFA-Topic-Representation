@@ -1,6 +1,8 @@
+from re import X
 import time
 import math
 import chess
+import random
 
 N = 0
 
@@ -66,11 +68,66 @@ pawn_mob_matrix = [
 ]
 
 # p, kn, b, r, q, ki
-mobility_matrix = [2, 3, 3, 3, 3, 5]
-material_matrix = [1, 3, 3, 5, 7, 50]
+mobility_matrix = [1, 5, 3.5, 3, 3, 1]
+material_matrix = [1, 3, 3, 5, 7, 90]
 complex_material_matrix = [pawn_mob_matrix, knight_mob_matrix, bishop_mob_matrix, rook_mob_matrix, queen_mob_matrix, king_mob_matrix]
-attack_matrix = [7, 3, 3, 3, 3, 1]
+attack_matrix = [14, 4, 4, 4, 4, 1]
 
+TT = [[int(random.getrandbits(64)) for i in range(64)] for j in range(12)]
+CTT = [int(random.getrandbits(64)) for i in range(4)]
+
+def init_hash(board : chess.Board) -> int : 
+    x = 0
+
+    cstr = board.castling_xfen()
+
+    if 'k' in cstr :
+        x ^= CTT[0]
+    if 'K' in cstr :
+        x ^= CTT[1]
+    if 'q' in cstr :
+        x ^= CTT[2]
+    if 'Q' in cstr :
+        x ^= CTT[3]
+
+    for i in range(64) : 
+        piece = board.piece_at(i)
+        if piece != None : 
+            x ^= TT[piece.piece_type - 1 + 6 * piece.color][i]
+    
+    return x
+
+def single_move_hash(move : chess.Move, init_board : chess.Board, init_hash : int) -> int :
+
+    init_piece = board.piece_at(move.from_square)
+    dest_piece = board.piece_at(move.to_square)
+    f_type = move.promotion
+    f_type = [init_piece.piece_type, f_type][f_type != None]
+
+    init_hash ^= TT[init_piece.piece_type - 1 + 6 * init_piece.color][move.from_square] ^ TT[f_type - 1 + 6 * init_piece.color][move.to_square]
+
+    if dest_piece != None : 
+        if dest_piece.color == init_piece.color :
+            if move.to_square > move.from_square : 
+                init_hash ^= TT[chess.ROOK - 1 + 6 * init_piece.color][move.from_square + 1] ^ TT[chess.ROOK - 1 + 6 * init_piece.color][move.to_square + 1] ^ CTT[2 * init_piece.color]
+            else : 
+                init_hash ^= TT[chess.ROOK - 1 + 6 * init_piece.color][move.to_square + 1] ^ TT[chess.ROOK - 1 + 6 * init_piece.color][move.to_square - 1] ^ CTT[1 + 2 * init_piece.color]
+        elif dest_piece.color != None :
+            init_hash ^= TT[dest_piece.piece_type - 1 + 6 * dest_piece.color][move.to_square]
+        
+    return init_hash
+
+Small_Lut = {}
+
+# small_lut_size = 5000000
+# Small_Lut = [None for i in range(small_lut_size)]
+
+'''
+def hash_hashkeys(hash_key : int) :
+    returns a hash for the hash key, in the range of [0, small_lut_size), which can be directly used as index for Lut
+    return (hash_key % small_lut_size)
+'''
+'''
 def isQuiet(current_state, isMaximizing) :
     # Evaluation ain't changing much from this state
     np_board, white_pieces, black_pieces, castling_rights = current_state
@@ -85,7 +142,7 @@ def isQuiet(current_state, isMaximizing) :
             return False
     
     return True
-
+'''
 '''
 def qsearch(current_state, isMaximizing, alpha, beta, depth = 3) :
     np_board, white_pieces, black_pieces, castling_rights = current_state
@@ -257,10 +314,14 @@ def evaluation(current_state) :
     return score3 * c_state + score2 * m_pieces + score1 * n_pieces
 '''
 
+TT_len = 0
+
 def ordering_heuristics(board : chess.Board, moves : chess.LegalMoveGenerator) :
     L = []
+    i = 0
 
     for move in moves :
+        i += 1
         score = 0
         myColor = board.color_at(move.from_square)
         enemyColor = not myColor
@@ -268,6 +329,10 @@ def ordering_heuristics(board : chess.Board, moves : chess.LegalMoveGenerator) :
         if move.promotion != None : 
             score += 50 * material_matrix[move.promotion - 1]
         
+        if abs(move.from_square - move.to_square) in [2, 3] :
+            if board.piece_type_at(move.from_square) == chess.KING :
+                score += 15
+
         if board.color_at(move.to_square) == enemyColor :
             score += 5 * (material_matrix[board.piece_type_at(move.to_square) - 1] - material_matrix[board.piece_type_at(move.from_square) - 1])
 
@@ -276,37 +341,51 @@ def ordering_heuristics(board : chess.Board, moves : chess.LegalMoveGenerator) :
         for attacker in attackers :
             score -= 2 * attack_matrix[board.piece_type_at(attacker) - 1]
 
-        attackers = board.attackers(myColor, move.to_square)
+        if board.piece_type_at(move.from_square) != chess.KING :
+            attackers = board.attackers(myColor, move.to_square)
 
-        for attacker in attackers :
-            score += 2 * attack_matrix[board.piece_type_at(attacker) - 1]
+            for attacker in attackers :
+                score += 2 * attack_matrix[board.piece_type_at(attacker) - 1]
         
         L.append((score, move))
     
     L.sort(key = lambda tup : tup[0], reverse=True)
 
-    return L
+    return i, L
 
-def qsearch(board : chess.Board, isMaximizing, alpha = -math.inf, beta = math.inf, depth = 3) :
+def qsearch(board : chess.Board, board_hash : int, isMaximizing, alpha = -math.inf, beta = math.inf, depth = 3) :
 
     if depth == 0 :
-        return [], evaluation(board)
+        return [], evaluation(board, board_hash)
 
-    best_move, best_score = [], [-1000, 1000][not isMaximizing]
+    best_move, best_score = [], evaluation(board, board_hash)
     
     moves = board.generate_legal_captures()
 
-    moves = ordering_heuristics(board, moves)
+    l, moves = ordering_heuristics(board, moves)
 
-    if len(moves) == 0 :
-        return [], evaluation(board)
+    i = l
+
+    if l == 0 :
+        return best_move, best_score
 
     for move in moves :
         waste, move = move
+
+        new_hash = single_move_hash(move, board, board_hash)
+
         board.push(move)
 
-        bm, bs = qsearch(board, not isMaximizing, alpha, beta, depth - 1)
-        bs += [-0.5, 0.5][isMaximizing] * waste
+        '''
+        if 2 * i > l :
+            bm, bs = qsearch(board, not isMaximizing, alpha, beta, depth - 1)
+        elif 3 * i > l :
+            bm, bs = qsearch(board, not isMaximizing, alpha, beta, max(depth - 2, 0))
+        else :
+            bm, bs = qsearch(board, not isMaximizing, alpha, beta, max(depth - 3, 0))
+        '''
+        bm, bs = qsearch(board, new_hash, not isMaximizing, alpha, beta, depth - 1)
+        bs += [-0.3, 0.3][isMaximizing] * waste
 
         board.pop()
 
@@ -321,34 +400,55 @@ def qsearch(board : chess.Board, isMaximizing, alpha = -math.inf, beta = math.in
 
         if (isMaximizing and best_score >= beta) or (not isMaximizing and best_score <= alpha) :
             break     
+            
+        i -= 1
 
     return best_move, best_score
 
-def evaluation(board : chess.Board) : 
-    global N 
+def evaluation(board : chess.Board, hash_ind : int) : 
+    global N
+    global TT_len
     N += 1
     score = 0
+
+    # hash_ind = init_hash(board)
+    if Small_Lut.get(hash_ind, None) != None :
+        return Small_Lut[hash_ind]
 
     moves = board.generate_pseudo_legal_moves()
 
     for move in moves :
         piece = board.piece_at(move.from_square)
-        score += [-1, 1][piece.color] * mobility_matrix[piece.piece_type - 1]
-
+        score += [-1, 1][piece.color] * mobility_matrix[piece.piece_type - 1]    
+    
     pieces = board.piece_map()
 
     for pos in pieces :
         piece = pieces[pos]
-        score += material_matrix[piece.piece_type - 1] * complex_material_matrix[piece.piece_type - 1][[-1 - pos, pos][piece.color]]
+        score += [-1, 1][piece.color] * material_matrix[piece.piece_type - 1] * complex_material_matrix[piece.piece_type - 1][[-1 - pos, pos][piece.color]]
+        if piece.piece_type != chess.KING :
+            attackers = board.attackers(piece.color, pos)
+            for attacker in attackers :
+                attacker = board.piece_type_at(attacker)
+                score += attack_matrix[attacker - 1]
+            attackers = board.attackers(not piece.color, pos)
+            for attacker in attackers :
+                attacker = board.piece_type_at(attacker)
+                score -= attack_matrix[attacker - 1]
+        # board.
+        # score += [-1, 1][piece.color] * len(board.attacks(pos)) * mobility_matrix[piece.piece_type - 1]
 
     # score += 200 * board.is_attacked_by(chess.WHITE, board.king(chess.BLACK))
     # score -= 200 * board.is_attacked_by(chess.BLACK, board.king(chess.WHITE))
+
+    Small_Lut[hash_ind] = score
+    TT_len += 1
     
     return score
 
-def Minimax(board, isMaximizing = True, alpha = -math.inf, beta = math.inf, depth = 6) :
+def Minimax(board, board_hash : int, isMaximizing = True, alpha = -math.inf, beta = math.inf, depth = 6) :
     if depth == 0 : 
-        return qsearch(board, isMaximizing, alpha, beta, 3)
+        return qsearch(board, board_hash, isMaximizing, alpha, beta, 2)
     
     if board.is_checkmate() : 
         return [], -1000
@@ -358,14 +458,27 @@ def Minimax(board, isMaximizing = True, alpha = -math.inf, beta = math.inf, dept
     best_move, best_score = [], [-1000, 1000][not isMaximizing]
 
     moves = board.legal_moves
-    moves = ordering_heuristics(board, moves)
+    l, moves = ordering_heuristics(board, moves)
+
+    i = l
 
     for move in moves :
         waste, move = move
+        
+        new_hash = single_move_hash(move, board, board_hash)
+        
         board.push(move)
 
-        bm, bs = Minimax(board, not isMaximizing, alpha, beta, depth - 1)
-        bs += [-0.5, 0.5][isMaximizing] * waste
+        '''
+        if 2 * i > l :
+            bm, bs = Minimax(board, not isMaximizing, alpha, beta, (depth - 1))
+        elif 3 * i > l :
+            bm, bs = Minimax(board, not isMaximizing, alpha, beta, max(depth - 2, 0))
+        else :
+            bm, bs = Minimax(board, not isMaximizing, alpha, beta, max(depth - 3, 0))
+        '''
+        bm, bs = Minimax(board, new_hash, not isMaximizing, alpha, beta, (depth - 1))
+        bs += [-0.3, 0.3][isMaximizing] * waste
 
         board.pop()
 
@@ -380,6 +493,8 @@ def Minimax(board, isMaximizing = True, alpha = -math.inf, beta = math.inf, dept
 
         if (isMaximizing and best_score >= beta) or (not isMaximizing and best_score <= alpha) :
             break     
+
+        i -= 1
 
     return best_move, best_score
 
@@ -402,7 +517,7 @@ for i in range(1) :
     if board.turn : 
         start = time.time()
         # score = evaluation(board)
-        best_move, best_score = Minimax(board, True, depth = 5) 
+        best_move, best_score = Minimax(board, True, depth = 6) 
         end = time.time()
         print("best_move, score, time = ", best_move, best_score, end - start)
         board.push(best_move[0])
@@ -411,6 +526,55 @@ for i in range(1) :
         board.push_uci(response)
 
 print("number of positions evaluated : ", N)
+print("number of transposition entries : ", TT_len)
+
+
+'''
+start = time.time()
+for i in range(1) :
+    n = evaluation(board)
+end = time.time()
+
+print("time taken = ", (end - start))
+'''
+
+'''
+print("Stages of Board : \n")
+
+board.push_uci('c3b1')
+print(board)
+print('--------')
+
+board.push_uci('e8d7')
+print(board)
+print('--------')
+
+board.push_uci('f1d3')
+print(board)
+print('--------')
+
+board.push_uci('g7g6')
+print(board)
+print('--------')
+
+board.push_uci('d1f3')
+print(board)
+print('--------')
+
+board.push_uci('f6e4')
+print(board)
+print('--------')
+
+board.push_uci('f3f7')
+print(board)
+print('--------')
+
+board.push_uci('e4f2')
+print(board)
+print('--------')
+
+print()
+'''
 
 '''
 start = time.time()
