@@ -2,8 +2,11 @@ import time
 import math
 import chess
 import random
+from distributed import client
 import numpy as np
-import multiprocessing
+from multiprocessing import Manager, Value, Process, Pool
+import dask
+from dask.distributed import Client
 
 N = 0
 
@@ -473,12 +476,514 @@ def evaluation(current_state) :
     return score3 * c_state + score2 * m_pieces + score1 * n_pieces
 '''
 
+client = Client()
+
+time.sleep(2)
+
+client.close()
+
+quit()
+
 TT_len = 0
 
 def bb_mask(bb : int) -> np.array :
     x = (bb >> position_array).astype(np.uint8)
     x = np.unpackbits(x, bitorder = 'little')
     return x
+
+@dask.delayed
+def evaluation4_0(board : chess.Board, hash_ind : int) -> float :
+    global N
+    global TT_len
+    N += 1
+
+
+    if Small_Lut.get(hash_ind, None) != None :
+        return Small_Lut[hash_ind]
+
+
+    '''
+    bpawn_mask = bb_mask(board.pawns & black)
+    wpawn_mask = bb_mask(board.pawns & white)
+
+    bknight_mask = bb_mask(board.knights & black)
+    wknight_mask = bb_mask(board.knights & white)
+
+    bbishop_mask = bb_mask(board.bishops & black)
+    wbishop_mask = bb_mask(board.bishops & white)
+
+    brook_mask = bb_mask(board.rooks & black)
+    wrook_mask = bb_mask(board.rooks & white)
+
+    bqueen_mask = bb_mask(board.queens & black)
+    wqueen_mask = bb_mask(board.queens & white)
+
+    bking_mask = bb_mask(board.kings & black)
+    wking_mask = bb_mask(board.kings & white)
+    '''
+
+    pieces = board.piece_map()
+
+    mg_material_value = 0
+    eg_material_value = 0
+
+    mg_protection_value = 0
+    eg_protection_value = 0
+
+    wp, bp, wn, bn, wb, bb, wr, br, wq, bq = 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+
+    for pos in pieces :
+        piece = pieces[pos]
+
+        piece_type = piece.piece_type
+        piece_color = piece.color
+
+        if piece_type == chess.PAWN :
+            if piece_color == chess.WHITE :
+                # phase calculation
+                wp += 1
+                ## material
+                # mg calculation
+                mg_material_value += mg_w_pawn_table[pos] + p_mg_value
+                # eg calculation
+                eg_material_value += eg_w_pawn_table[pos] + p_eg_value
+                ## protection
+                attackers = board.attackers(not piece_color, pos)
+                protectors = board.attackers(piece_color, pos)
+                _protection_value = (0.5 * len(protectors) - len(attackers))
+                # mg calculation
+                mg_protection_value += _protection_value * p_mg_value
+                # eg calculation
+                eg_protection_value += _protection_value * p_eg_value
+            if piece_color == chess.BLACK :
+                # phase calculation
+                bp += 1
+                # mg calculation
+                mg_material_value -= mg_b_pawn_table[pos] + p_mg_value
+                # eg calculation
+                eg_material_value -= eg_b_pawn_table[pos] + p_eg_value
+                ## protection
+                attackers = board.attackers(not piece_color, pos)
+                protectors = board.attackers(piece_color, pos)
+                _protection_value = (0.5 * len(protectors) - len(attackers))
+                # mg calculation
+                mg_protection_value -= _protection_value * p_mg_value
+                # eg calculation
+                eg_protection_value -= _protection_value * p_eg_value
+        if piece_type == chess.KNIGHT :
+            if piece_color == chess.WHITE :
+                # phase calculation
+                wn += 1
+                # mg calculation
+                mg_material_value += mg_w_knight_table[pos] + n_mg_value
+                # eg calculation
+                eg_material_value += eg_w_knight_table[pos] + n_eg_value
+                ## protection
+                attackers = board.attackers(not piece_color, pos)
+                protectors = board.attackers(piece_color, pos)
+                _protection_value = (0.5 * len(protectors) - len(attackers))
+                # mg calculation
+                mg_protection_value += _protection_value * n_mg_value
+                # eg calculation
+                eg_protection_value += _protection_value * n_eg_value
+            if piece_color == chess.BLACK :
+                # phase calculation
+                bn += 1
+                # mg calculation
+                mg_material_value -= mg_b_knight_table[pos] + n_mg_value
+                # eg calculation
+                eg_material_value -= eg_b_knight_table[pos] + n_eg_value
+                ## protection
+                attackers = board.attackers(not piece_color, pos)
+                protectors = board.attackers(piece_color, pos)
+                _protection_value = (0.5 * len(protectors) - len(attackers))
+                # mg calculation
+                mg_protection_value -= _protection_value * n_mg_value
+                # eg calculation
+                eg_protection_value -= _protection_value * n_eg_value 
+        if piece_type == chess.BISHOP :
+            if piece_color == chess.WHITE :
+                # phase calculation
+                wb += 1
+                # mg calculation
+                mg_material_value += mg_w_bishop_table[pos] + b_mg_value
+                # eg calculation
+                eg_material_value += eg_w_bishop_table[pos] + b_eg_value
+                ## protection
+                attackers = board.attackers(not piece_color, pos)
+                protectors = board.attackers(piece_color, pos)
+                _protection_value = (0.5 * len(protectors) - len(attackers))
+                # mg calculation
+                mg_protection_value += _protection_value * b_mg_value
+                # eg calculation
+                eg_protection_value += _protection_value * b_eg_value
+            if piece_color == chess.BLACK :
+                # phase calculation
+                bb += 1
+                # mg calculation
+                mg_material_value -= mg_b_bishop_table[pos] + b_mg_value
+                # eg calculation
+                eg_material_value -= eg_b_bishop_table[pos] + b_eg_value
+                ## protection
+                attackers = board.attackers(not piece_color, pos)
+                protectors = board.attackers(piece_color, pos)
+                _protection_value = (0.5 * len(protectors) - len(attackers))
+                # mg calculation
+                mg_protection_value -= _protection_value * b_mg_value
+                # eg calculation
+                eg_protection_value -= _protection_value * b_eg_value
+        if piece_type == chess.ROOK :
+            if piece_color == chess.WHITE :
+                # phase calculation
+                wr += 1
+                # mg calculation
+                mg_material_value += mg_w_rook_table[pos] + r_mg_value
+                # eg calculation
+                eg_material_value += eg_w_rook_table[pos] + r_eg_value
+                ## protection
+                attackers = board.attackers(not piece_color, pos)
+                protectors = board.attackers(piece_color, pos)
+                _protection_value = (0.5 * len(protectors) - len(attackers))
+                # mg calculation
+                mg_protection_value += _protection_value * r_mg_value
+                # eg calculation
+                eg_protection_value += _protection_value * r_eg_value
+            if piece_color == chess.BLACK :
+                # phase calculation
+                br += 1
+                # mg calculation
+                mg_material_value -= mg_b_rook_table[pos] + r_mg_value
+                # eg calculation
+                eg_material_value -= eg_b_rook_table[pos] + r_eg_value
+                ## protection
+                attackers = board.attackers(not piece_color, pos)
+                protectors = board.attackers(piece_color, pos)
+                _protection_value = (0.5 * len(protectors) - len(attackers))
+                # mg calculation
+                mg_protection_value -= _protection_value * r_mg_value
+                # eg calculation
+                eg_protection_value -= _protection_value * r_eg_value
+        if piece_type == chess.QUEEN :
+            if piece_color == chess.WHITE :
+                # phase calculation
+                wq += 1
+                # mg calculation
+                mg_material_value += mg_w_queen_table[pos] + q_mg_value
+                # eg calculation
+                eg_material_value += eg_w_queen_table[pos] + q_eg_value
+                ## protection
+                attackers = board.attackers(not piece_color, pos)
+                protectors = board.attackers(piece_color, pos)
+                _protection_value = (0.5 * len(protectors) - len(attackers))
+                # mg calculation
+                mg_protection_value += _protection_value * q_mg_value
+                # eg calculation
+                eg_protection_value += _protection_value * q_eg_value
+            if piece_color == chess.BLACK :
+                # phase calculation
+                bq += 1
+                # mg calculation
+                mg_material_value -= mg_b_queen_table[pos] + q_mg_value
+                # eg calculation
+                eg_material_value -= eg_b_queen_table[pos] + q_eg_value
+                ## protection
+                attackers = board.attackers(not piece_color, pos)
+                protectors = board.attackers(piece_color, pos)
+                _protection_value = (0.5 * len(protectors) - len(attackers))
+                # mg calculation
+                mg_protection_value -= _protection_value * q_mg_value
+                # eg calculation
+                eg_protection_value -= _protection_value * q_eg_value
+
+
+    '''
+    wp, bp = bpawn_mask.sum(), wpawn_mask.sum()
+    wn, bn = bknight_mask.sum(), wknight_mask.sum()
+    wb, bb = bbishop_mask.sum(), wbishop_mask.sum()
+    wr, br = brook_mask.sum(), wrook_mask.sum()
+    wq, bq = bqueen_mask.sum(), wqueen_mask.sum()
+    '''
+
+    phase = TotalPhase
+
+    phase -= (wp + bp) * PawnPhase  # Where wp is the number of white pawns currently on the board
+    phase -= (wn + bn) * KnightPhase    # White knights
+    phase -= (wb + bb) * BishopPhase
+    phase -= (wr + br) * RookPhase
+    phase -= (wq + bq) * QueenPhase
+
+    phase = 256 * phase / TotalPhase
+
+    '''
+    #  mg_eval
+    mg_material_value += -(bpawn_mask * mg_b_pawn_table).sum() + p_eg_value + (wpawn_mask * mg_w_pawn_table).sum() 
+    mg_material_value += -(bknight_mask * mg_b_knight_table).sum() + (wknight_mask * mg_w_knight_table).sum()
+    mg_material_value += -(bbishop_mask * mg_b_bishop_table).sum() + (wbishop_mask * mg_w_bishop_table).sum() 
+    mg_material_value += -(brook_mask * mg_b_rook_table).sum() + (wrook_mask * mg_w_rook_table).sum() 
+    mg_material_value += -(bqueen_mask * mg_b_queen_table).sum() + (wqueen_mask * mg_w_queen_table).sum() 
+    mg_material_value += -(bking_mask * mg_b_king_table).sum() + (wking_mask * mg_w_king_table).sum() 
+
+    #  eg_eval
+    eg_material_value += -(bpawn_mask * eg_b_pawn_table).sum() + (wpawn_mask * eg_w_pawn_table).sum() 
+    eg_material_value += -(bknight_mask * eg_b_knight_table).sum() + (wknight_mask * eg_w_knight_table).sum()
+    eg_material_value += -(bbishop_mask * eg_b_bishop_table).sum() + (wbishop_mask * eg_w_bishop_table).sum() 
+    eg_material_value += -(brook_mask * eg_b_rook_table).sum() + (wrook_mask * eg_w_rook_table).sum() 
+    eg_material_value += -(bqueen_mask * eg_b_queen_table).sum() + (wqueen_mask * eg_w_queen_table).sum() 
+    eg_material_value += -(bking_mask * eg_b_king_table).sum() + (wking_mask * eg_w_king_table).sum() 
+    '''
+
+    material_value = (mg_material_value * (256 - phase) + eg_material_value * phase) / 256
+
+    material_value /= 1e4
+
+    protection_value = (mg_protection_value * (256 - phase) + eg_protection_value * phase) / 256
+
+    original = board.turn
+    board.turn = chess.WHITE
+    n_white = board.legal_moves.count() 
+    board.turn = chess.BLACK
+    n_black = board.legal_moves.count() 
+    board.turn = original
+
+    mobility_value = (n_white - n_black) / 4
+
+    score = material_value * protection_value / 2e3 + mobility_value * protection_value / 5e6
+
+    Small_Lut[hash_ind] = score
+    TT_len += 1
+
+    return score
+
+def eval_util(board : chess.Board, pos : chess.Square, pieces : dict, 
+mg_material_value : Value, eg_material_value : Value, 
+mg_protection_value : Value, eg_protection_value : Value,
+wp : Value, bp : Value, wn : Value, bn : Value, wb : Value, bb : Value, wr : Value, br : Value, wq : Value, bq : Value) : 
+    piece = pieces[pos]
+
+    piece_type = piece.piece_type
+    piece_color = piece.color
+
+    with mg_material_value.get_lock(), eg_material_value.get_lock(), mg_protection_value.get_lock(), eg_protection_value.get_lock(), wp.get_lock(), bp.get_lock(), wn.get_lock(), bn.get_lock(), wb.get_lock(), bb.get_lock(), wr.get_lock(), br.get_lock(), wq.get_lock(), bq.get_lock() :
+
+        if piece_type == chess.PAWN :
+            if piece_color == chess.WHITE :
+                # phase calculation
+                wp.value += 1
+                ## material
+                # mg calculation
+                mg_material_value.value += mg_w_pawn_table[pos] + p_mg_value
+                # eg calculation
+                eg_material_value.value += eg_w_pawn_table[pos] + p_eg_value
+                ## protection
+                attackers = board.attackers(not piece_color, pos)
+                protectors = board.attackers(piece_color, pos)
+                _protection_value = (0.5 * len(protectors) - len(attackers))
+                # mg calculation
+                mg_protection_value.value += _protection_value * p_mg_value
+                # eg calculation
+                eg_protection_value.value += _protection_value * p_eg_value
+            if piece_color == chess.BLACK :
+                # phase calculation
+                bp.value += 1
+                # mg calculation
+                mg_material_value.value -= mg_b_pawn_table[pos] + p_mg_value
+                # eg calculation
+                eg_material_value.value -= eg_b_pawn_table[pos] + p_eg_value
+                ## protection
+                attackers = board.attackers(not piece_color, pos)
+                protectors = board.attackers(piece_color, pos)
+                _protection_value = (0.5 * len(protectors) - len(attackers))
+                # mg calculation
+                mg_protection_value.value -= _protection_value * p_mg_value
+                # eg calculation
+                eg_protection_value.value -= _protection_value * p_eg_value
+        if piece_type == chess.KNIGHT :
+            if piece_color == chess.WHITE :
+                # phase calculation
+                wn.value += 1
+                # mg calculation
+                mg_material_value.value += mg_w_knight_table[pos] + n_mg_value
+                # eg calculation
+                eg_material_value.value += eg_w_knight_table[pos] + n_eg_value
+                ## protection
+                attackers = board.attackers(not piece_color, pos)
+                protectors = board.attackers(piece_color, pos)
+                _protection_value = (0.5 * len(protectors) - len(attackers))
+                # mg calculation
+                mg_protection_value.value += _protection_value * n_mg_value
+                # eg calculation
+                eg_protection_value.value += _protection_value * n_eg_value
+            if piece_color == chess.BLACK :
+                # phase calculation
+                bn.value += 1
+                # mg calculation
+                mg_material_value.value -= mg_b_knight_table[pos] + n_mg_value
+                # eg calculation
+                eg_material_value.value -= eg_b_knight_table[pos] + n_eg_value
+                ## protection
+                attackers = board.attackers(not piece_color, pos)
+                protectors = board.attackers(piece_color, pos)
+                _protection_value = (0.5 * len(protectors) - len(attackers))
+                # mg calculation
+                mg_protection_value.value -= _protection_value * n_mg_value
+                # eg calculation
+                eg_protection_value.value -= _protection_value * n_eg_value 
+        if piece_type == chess.BISHOP :
+            if piece_color == chess.WHITE :
+                # phase calculation
+                wb.value += 1
+                # mg calculation
+                mg_material_value.value += mg_w_bishop_table[pos] + b_mg_value
+                # eg calculation
+                eg_material_value.value += eg_w_bishop_table[pos] + b_eg_value
+                ## protection
+                attackers = board.attackers(not piece_color, pos)
+                protectors = board.attackers(piece_color, pos)
+                _protection_value = (0.5 * len(protectors) - len(attackers))
+                # mg calculation
+                mg_protection_value.value += _protection_value * b_mg_value
+                # eg calculation
+                eg_protection_value.value += _protection_value * b_eg_value
+            if piece_color == chess.BLACK :
+                # phase calculation
+                bb.value += 1
+                # mg calculation
+                mg_material_value.value -= mg_b_bishop_table[pos] + b_mg_value
+                # eg calculation
+                eg_material_value.value -= eg_b_bishop_table[pos] + b_eg_value
+                ## protection
+                attackers = board.attackers(not piece_color, pos)
+                protectors = board.attackers(piece_color, pos)
+                _protection_value = (0.5 * len(protectors) - len(attackers))
+                # mg calculation
+                mg_protection_value.value -= _protection_value * b_mg_value
+                # eg calculation
+                eg_protection_value.value -= _protection_value * b_eg_value
+        if piece_type == chess.ROOK :
+            if piece_color == chess.WHITE :
+                # phase calculation
+                wr.value += 1
+                # mg calculation
+                mg_material_value.value += mg_w_rook_table[pos] + r_mg_value
+                # eg calculation
+                eg_material_value.value += eg_w_rook_table[pos] + r_eg_value
+                ## protection
+                attackers = board.attackers(not piece_color, pos)
+                protectors = board.attackers(piece_color, pos)
+                _protection_value = (0.5 * len(protectors) - len(attackers))
+                # mg calculation
+                mg_protection_value.value += _protection_value * r_mg_value
+                # eg calculation
+                eg_protection_value.value += _protection_value * r_eg_value
+            if piece_color == chess.BLACK :
+                # phase calculation
+                br.value += 1
+                # mg calculation
+                mg_material_value.value -= mg_b_rook_table[pos] + r_mg_value
+                # eg calculation
+                eg_material_value.value -= eg_b_rook_table[pos] + r_eg_value
+                ## protection
+                attackers = board.attackers(not piece_color, pos)
+                protectors = board.attackers(piece_color, pos)
+                _protection_value = (0.5 * len(protectors) - len(attackers))
+                # mg calculation
+                mg_protection_value.value -= _protection_value * r_mg_value
+                # eg calculation
+                eg_protection_value.value -= _protection_value * r_eg_value
+        if piece_type == chess.QUEEN :
+            if piece_color == chess.WHITE :
+                # phase calculation
+                wq.value += 1
+                # mg calculation
+                mg_material_value.value += mg_w_queen_table[pos] + q_mg_value
+                # eg calculation
+                eg_material_value.value += eg_w_queen_table[pos] + q_eg_value
+                ## protection
+                attackers = board.attackers(not piece_color, pos)
+                protectors = board.attackers(piece_color, pos)
+                _protection_value = (0.5 * len(protectors) - len(attackers))
+                # mg calculation
+                mg_protection_value.value += _protection_value * q_mg_value
+                # eg calculation
+                eg_protection_value.value += _protection_value * q_eg_value
+            if piece_color == chess.BLACK :
+                # phase calculation
+                bq.value += 1
+                # mg calculation
+                mg_material_value.value -= mg_b_queen_table[pos] + q_mg_value
+                # eg calculation
+                eg_material_value.value -= eg_b_queen_table[pos] + q_eg_value
+                ## protection
+                attackers = board.attackers(not piece_color, pos)
+                protectors = board.attackers(piece_color, pos)
+                _protection_value = (0.5 * len(protectors) - len(attackers))
+                # mg calculation
+                mg_protection_value.value -= _protection_value * q_mg_value
+                # eg calculation
+                eg_protection_value.value -= _protection_value * q_eg_value
+
+def evaluation3_0(board : chess.Board, hash_ind : int) -> float :
+    global N
+    global TT_len
+    N += 1
+
+
+    if Small_Lut.get(hash_ind, None) != None :
+        return Small_Lut[hash_ind]
+
+    pieces = board.piece_map()
+
+    mg_material_value = Value('f', 0.0)
+    eg_material_value = Value('f', 0.0)
+
+    mg_protection_value = Value('f', 0.0)
+    eg_protection_value = Value('f', 0.0)
+
+    wp, bp, wn, bn, wb, bb, wr, br, wq, bq = Value('f', 0.0), Value('f', 0.0), Value('f', 0.0), Value('f', 0.0), Value('f', 0.0), Value('f', 0.0), Value('f', 0.0), Value('f', 0.0), Value('f', 0.0), Value('f', 0.0)
+
+    with Pool(processes = 12) as pool :
+        pool.imap_unordered(lambda pos : eval_util(board, pos, pieces, mg_material_value, eg_material_value, mg_protection_value, eg_protection_value, wp, bp, wn, bn, wb, bb, wr, br, wq, bq), pieces.keys())
+        print('Done?')
+
+    mg_material_value = mg_material_value.value
+    eg_material_value = eg_material_value.value
+
+    mg_protection_value = mg_protection_value.value
+    eg_protection_value = eg_protection_value.value
+
+    wp, bp, wn, bn, wb, bb, wr, br, wq, bq = wp.value, bp.value, wn.value, bn.value, wb.value, bb.value, wr.value, br.value, wq.value, bq.value
+
+    phase = TotalPhase
+
+    phase -= (wp + bp) * PawnPhase  # Where wp is the number of white pawns currently on the board
+    phase -= (wn + bn) * KnightPhase    # White knights
+    phase -= (wb + bb) * BishopPhase
+    phase -= (wr + br) * RookPhase
+    phase -= (wq + bq) * QueenPhase
+
+    phase = 256 * phase / TotalPhase
+
+    material_value = (mg_material_value * (256 - phase) + eg_material_value * phase) / 256
+
+    material_value /= 1e4
+
+    protection_value = (mg_protection_value * (256 - phase) + eg_protection_value * phase) / 256
+
+    original = board.turn
+    board.turn = chess.WHITE
+    n_white = board.legal_moves.count() 
+    board.turn = chess.BLACK
+    n_black = board.legal_moves.count() 
+    board.turn = original
+
+    mobility_value = (n_white - n_black) / 4
+
+    score = material_value * protection_value / 2e3 + mobility_value * protection_value / 5e6
+
+    Small_Lut[hash_ind] = score
+    TT_len += 1
+
+    return score
 
 def evaluation2_0(board : chess.Board, hash_ind : int) -> float :
 
@@ -1021,7 +1526,7 @@ print("before : ")
 print(board)
 print('Evaluation : ', evaluation2_0(board, hash))
 
-
+'''
 for i in range(1) : 
     if i % 2 == 0 : 
         Small_Lut.clear()
@@ -1044,7 +1549,7 @@ print(board)
 
 print("number of positions evaluated : ", N)
 print("number of transposition entries : ", TT_len)
-
+'''
 
 '''
 move = chess.Move.from_uci('c1g5')
@@ -1092,10 +1597,12 @@ for move in moves :
 '''
 start = time.time()
 for i in range(1) :
-    n = evaluation2_0(board, init_hash)
+    # n = client.submit(evaluation4_0, board, hash)
+    n = evaluation4_0(board, hash)
+    n = n.compute()
 end = time.time()
 
-print("time taken, evaluation = ", (end - start), n)
+print("time taken, evaluation = ", (end - start), n.result())
 '''
 
 '''
