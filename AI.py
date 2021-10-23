@@ -518,13 +518,13 @@ def evaluation2_0(board : chess.Board, hash_ind : int) -> float :
     mg_protection_value = 0
     eg_protection_value = 0
 
+    wp, bp, wn, bn, wb, bb, wr, br, wq, bq = 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+
     for pos in pieces :
         piece = pieces[pos]
 
         piece_type = piece.piece_type
         piece_color = piece.color
-
-        wp, bp, wn, bn, wb, bb, wr, br, wq, bq = 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 
         if piece_type == chess.PAWN :
             if piece_color == chess.WHITE :
