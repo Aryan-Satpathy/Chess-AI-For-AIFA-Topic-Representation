@@ -2,9 +2,9 @@ import time
 import math
 import chess
 import random
-from distributed import client
+# from distributed import client
 import numpy as np
-from multiprocessing import Manager, Value, Process, Pool
+# from multiprocessing import Manager, Value, Process, Pool
 import dask
 from dask.distributed import Client
 
@@ -476,13 +476,11 @@ def evaluation(current_state) :
     return score3 * c_state + score2 * m_pieces + score1 * n_pieces
 '''
 
-client = Client()
+client = Client(processes=False)
 
-time.sleep(2)
+# time.sleep(2)
 
-client.close()
-
-quit()
+# client.close()
 
 TT_len = 0
 
@@ -754,6 +752,7 @@ def evaluation4_0(board : chess.Board, hash_ind : int) -> float :
 
     return score
 
+'''
 def eval_util(board : chess.Board, pos : chess.Square, pieces : dict, 
 mg_material_value : Value, eg_material_value : Value, 
 mg_protection_value : Value, eg_protection_value : Value,
@@ -984,6 +983,7 @@ def evaluation3_0(board : chess.Board, hash_ind : int) -> float :
     TT_len += 1
 
     return score
+'''
 
 def evaluation2_0(board : chess.Board, hash_ind : int) -> float :
 
@@ -1594,7 +1594,7 @@ for move in moves :
 # print('eval : ', evaluation(board, 0))
 '''
 
-'''
+
 start = time.time()
 for i in range(1) :
     # n = client.submit(evaluation4_0, board, hash)
@@ -1602,8 +1602,9 @@ for i in range(1) :
     n = n.compute()
 end = time.time()
 
-print("time taken, evaluation = ", (end - start), n.result())
-'''
+print("time taken, evaluation = ", (end - start), n)
+
+client.close()
 
 '''
 print("Stages of Board : \n")
