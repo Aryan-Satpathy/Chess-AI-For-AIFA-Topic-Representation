@@ -538,7 +538,7 @@ def evaluation2_0(board : chess.Board, hash_ind : int) -> float :
                 ## protection
                 attackers = board.attackers(not piece_color, pos)
                 protectors = board.attackers(piece_color, pos)
-                _protection_value = (0.5 * len(protectors) - len(attackers))
+                _protection_value = (1.5 * len(protectors) - len(attackers))
                 # mg calculation
                 mg_protection_value += _protection_value * p_mg_value
                 # eg calculation
@@ -553,7 +553,7 @@ def evaluation2_0(board : chess.Board, hash_ind : int) -> float :
                 ## protection
                 attackers = board.attackers(not piece_color, pos)
                 protectors = board.attackers(piece_color, pos)
-                _protection_value = (0.5 * len(protectors) - len(attackers))
+                _protection_value = (1.5 * len(protectors) - len(attackers))
                 # mg calculation
                 mg_protection_value -= _protection_value * p_mg_value
                 # eg calculation
@@ -569,7 +569,7 @@ def evaluation2_0(board : chess.Board, hash_ind : int) -> float :
                 ## protection
                 attackers = board.attackers(not piece_color, pos)
                 protectors = board.attackers(piece_color, pos)
-                _protection_value = (0.5 * len(protectors) - len(attackers))
+                _protection_value = (1.5 * len(protectors) - len(attackers))
                 # mg calculation
                 mg_protection_value += _protection_value * n_mg_value
                 # eg calculation
@@ -584,7 +584,7 @@ def evaluation2_0(board : chess.Board, hash_ind : int) -> float :
                 ## protection
                 attackers = board.attackers(not piece_color, pos)
                 protectors = board.attackers(piece_color, pos)
-                _protection_value = (0.5 * len(protectors) - len(attackers))
+                _protection_value = (1.5 * len(protectors) - len(attackers))
                 # mg calculation
                 mg_protection_value -= _protection_value * n_mg_value
                 # eg calculation
@@ -600,7 +600,7 @@ def evaluation2_0(board : chess.Board, hash_ind : int) -> float :
                 ## protection
                 attackers = board.attackers(not piece_color, pos)
                 protectors = board.attackers(piece_color, pos)
-                _protection_value = (0.5 * len(protectors) - len(attackers))
+                _protection_value = (1.5 * len(protectors) - len(attackers))
                 # mg calculation
                 mg_protection_value += _protection_value * b_mg_value
                 # eg calculation
@@ -615,7 +615,7 @@ def evaluation2_0(board : chess.Board, hash_ind : int) -> float :
                 ## protection
                 attackers = board.attackers(not piece_color, pos)
                 protectors = board.attackers(piece_color, pos)
-                _protection_value = (0.5 * len(protectors) - len(attackers))
+                _protection_value = (1.5 * len(protectors) - len(attackers))
                 # mg calculation
                 mg_protection_value -= _protection_value * b_mg_value
                 # eg calculation
@@ -631,7 +631,7 @@ def evaluation2_0(board : chess.Board, hash_ind : int) -> float :
                 ## protection
                 attackers = board.attackers(not piece_color, pos)
                 protectors = board.attackers(piece_color, pos)
-                _protection_value = (0.5 * len(protectors) - len(attackers))
+                _protection_value = (1.5 * len(protectors) - len(attackers))
                 # mg calculation
                 mg_protection_value += _protection_value * r_mg_value
                 # eg calculation
@@ -646,7 +646,7 @@ def evaluation2_0(board : chess.Board, hash_ind : int) -> float :
                 ## protection
                 attackers = board.attackers(not piece_color, pos)
                 protectors = board.attackers(piece_color, pos)
-                _protection_value = (0.5 * len(protectors) - len(attackers))
+                _protection_value = (1.5 * len(protectors) - len(attackers))
                 # mg calculation
                 mg_protection_value -= _protection_value * r_mg_value
                 # eg calculation
@@ -662,7 +662,7 @@ def evaluation2_0(board : chess.Board, hash_ind : int) -> float :
                 ## protection
                 attackers = board.attackers(not piece_color, pos)
                 protectors = board.attackers(piece_color, pos)
-                _protection_value = (0.5 * len(protectors) - len(attackers))
+                _protection_value = (1.5 * len(protectors) - len(attackers))
                 # mg calculation
                 mg_protection_value += _protection_value * q_mg_value
                 # eg calculation
@@ -677,7 +677,7 @@ def evaluation2_0(board : chess.Board, hash_ind : int) -> float :
                 ## protection
                 attackers = board.attackers(not piece_color, pos)
                 protectors = board.attackers(piece_color, pos)
-                _protection_value = (0.5 * len(protectors) - len(attackers))
+                _protection_value = (1.5 * len(protectors) - len(attackers))
                 # mg calculation
                 mg_protection_value -= _protection_value * q_mg_value
                 # eg calculation
