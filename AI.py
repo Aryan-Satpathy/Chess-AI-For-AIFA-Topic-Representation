@@ -743,7 +743,8 @@ def evaluation2_0(board : chess.Board, hash_ind : int) -> float :
     return score
 
 def ordering_heuristics(board : chess.Board, moves : chess.LegalMoveGenerator) :
-    L = []
+    L_moves = []
+    L_evals = []
     i = 0
 
     for move in moves :
@@ -783,11 +784,13 @@ def ordering_heuristics(board : chess.Board, moves : chess.LegalMoveGenerator) :
                     score += 2.5 * attack_matrix[board.piece_type_at(attacker) - 1]
         '''
 
-        L.append((score / 500, move))
+        L_moves.append(move)
+        L_evals.append((i - 1), score / 500)
+        # L.append((score / 500, move))
     
-    L.sort(key = lambda tup : tup[0], reverse=True)
+    L_evals.sort(key = lambda tup : tup[1], reverse=True)
 
-    return i, L
+    return i, L_moves, L_evals
 
 def qsearch(board : chess.Board, board_hash : int, isMaximizing, alpha = -math.inf, beta = math.inf, depth = 3) :
 
@@ -798,15 +801,16 @@ def qsearch(board : chess.Board, board_hash : int, isMaximizing, alpha = -math.i
     
     moves = board.generate_legal_captures()
 
-    l, moves = ordering_heuristics(board, moves)
+    l, moves, evals = ordering_heuristics(board, moves)
 
     i = l
 
     if l == 0 :
         return best_move, best_score
 
-    for move in moves :
-        waste, move = move
+    for eval in evals :
+        ind, waste = eval
+        move = moves[ind]
 
         new_hash = single_move_hash(move, board, board_hash)
 
@@ -933,7 +937,7 @@ def evaluation(board : chess.Board, hash_ind : int) :
     return score
     # return (attack_score, material_score, protection_score)
 
-def Minimax(board, board_hash : int, isMaximizing = True, alpha = -math.inf, beta = math.inf, depth = 6) :
+def Minimax(board, board_hash : int, isMaximizing = True, alpha = -math.inf, beta = math.inf, depth = 6, move_sequence_from_previous_iteration = None) :
     if depth == 0 : 
         return qsearch(board, board_hash, isMaximizing, alpha, beta, 4)
     
@@ -943,14 +947,20 @@ def Minimax(board, board_hash : int, isMaximizing = True, alpha = -math.inf, bet
         return [], -1e6
     
     best_move, best_score = [], [-math.inf, math.inf][not isMaximizing]
-
+    
     moves = board.legal_moves
-    l, moves = ordering_heuristics(board, moves)
+    l, moves, evals = ordering_heuristics(board, moves)
 
     i = l
 
-    for move in moves :
-        waste, move = move
+    prev_iteration_best_move = None
+    new_move_sequence = None
+    if depth > 1 and move_sequence_from_previous_iteration is not None :
+        prev_iteration_best_move = move_sequence_from_previous_iteration[0]
+        
+        waste, move = prev_iteration_best_move
+        ind, move = move
+        waste = evals[ind][1]
         
         new_hash = single_move_hash(move, board, board_hash)
         
@@ -973,7 +983,51 @@ def Minimax(board, board_hash : int, isMaximizing = True, alpha = -math.inf, bet
             bm, bs = Minimax(board, new_hash, not isMaximizing, alpha, beta, max(depth - 3, 0))
         '''
 
-        bm, bs = Minimax(board, new_hash, not isMaximizing, alpha, beta, (depth - 1))
+        new_move_sequence = move_sequence_from_previous_iteration[1 : ]
+        bm, bs = Minimax(board, new_hash, not isMaximizing, alpha, beta, (depth - 1), new_move_sequence)
+        bs += [-1, 1][isMaximizing] * waste
+
+        board.pop()
+
+        if (isMaximizing and best_score < bs) or (not isMaximizing and best_score > bs) :
+            best_move = [move] + bm
+            best_score = bs 
+        
+        if (isMaximizing and best_score > alpha) :
+            alpha = best_score
+        if (not isMaximizing and best_score < beta) :
+            beta = best_score
+
+        i -= 1
+
+
+    for eval in evals :
+        ind, waste = eval
+        move = moves[ind]
+        if prev_iteration_best_move != None and move[1] == prev_iteration_best_move[1] : 
+            continue
+        new_hash = single_move_hash(move, board, board_hash)
+        
+        board.push(move)
+
+        '''
+        if 2 * i > l :
+            bm, bs = Minimax(board, not isMaximizing, alpha, beta, (depth - 1))
+        elif 3 * i > l :
+            bm, bs = Minimax(board, not isMaximizing, alpha, beta, max(depth - 2, 0))
+        else :
+            bm, bs = Minimax(board, not isMaximizing, alpha, beta, max(depth - 3, 0))
+        '''
+        '''
+        if 3 * i > l :
+            bm, bs = Minimax(board, new_hash, not isMaximizing, alpha, beta, (depth - 1))
+        elif 5 * i > l :
+            bm, bs = Minimax(board, new_hash, not isMaximizing, alpha, beta, max(depth - 2, 0))
+        else :
+            bm, bs = Minimax(board, new_hash, not isMaximizing, alpha, beta, max(depth - 3, 0))
+        '''
+
+        bm, bs = Minimax(board, new_hash, not isMaximizing, alpha, beta, (depth - 1), None)
         bs += [-1, 1][isMaximizing] * waste
 
         board.pop()
@@ -1026,7 +1080,12 @@ for i in range(1) :
         Small_Lut.clear()
         start = time.time()
         # score = evaluation(board)
-        best_move, best_score = Minimax(board, board_hash = hash, isMaximizing = True, depth = 4) 
+        move_sequence_from_previous_iteration = None
+        for depth in range(1, 5) : 
+            best_move, best_score = Minimax(board, board_hash = hash, isMaximizing = True, depth = depth, move_sequence_from_previous_iteration = move_sequence_from_previous_iteration) 
+            move_sequence_from_previous_iteration = [(best_score, move) for move in best_move]
+            print('Iteration {} over.'.format(depth))
+        best_move, best_score = Minimax(board, board_hash = hash, isMaximizing = True, depth = 4, move_sequence_from_previous_iteration = move_sequence_from_previous_iteration)
         end = time.time()
         print("best_move, score, time = ", best_move, best_score, end - start)
         hash = single_move_hash(best_move[0], board, hash)
