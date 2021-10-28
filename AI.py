@@ -289,12 +289,9 @@ def hash_hashkeys(hash_key : int) :
 def isQuiet(current_state, isMaximizing) :
     # Evaluation ain't changing much from this state
     np_board, white_pieces, black_pieces, castling_rights = current_state
-
     Moves = UI.getLegalMoves(np_board, white_pieces, black_pieces, [UI.black >> 3, UI.white >> 3][isMaximizing])
-
     # if UI.board_check(np_board, int(isMaximizing)) :
     #     return False
-
     for move in Moves :
         if np_board[move[1]] != UI.empty :
             return False
@@ -304,18 +301,13 @@ def isQuiet(current_state, isMaximizing) :
 '''
 def qsearch(current_state, isMaximizing, alpha, beta, depth = 3) :
     np_board, white_pieces, black_pieces, castling_rights = current_state
-
     best_move = []
     best_score = [math.inf, -math.inf][isMaximizing]
-
     Moves = UI.getLegalMoves(np_board, white_pieces, black_pieces, [UI.black >> 3, UI.white >> 3][isMaximizing])
-
     if len(Moves) == 0 : 
         print("Doomsday !!!")
-
     for move in Moves :
         i, dest = move
-
         if isMaximizing :
             init = white_pieces[i]
         else :
@@ -324,7 +316,6 @@ def qsearch(current_state, isMaximizing, alpha, beta, depth = 3) :
         buffer = np_board[dest]
         np_board[dest] = np_board[init]
         np_board[init] = UI.empty
-
         if isMaximizing :
             white_pieces[i] = dest
             try : 
@@ -339,9 +330,7 @@ def qsearch(current_state, isMaximizing, alpha, beta, depth = 3) :
                 white_pieces.pop(ind)
             except :
                 ind = -1
-
         current_state = np_board, white_pieces, black_pieces, castling_rights
-
         if np_board[dest] == UI.empty :
             if not UI.board_check(np_board, white_pieces, black_pieces, not isMaximizing) :
                 if isMaximizing :
@@ -356,16 +345,13 @@ def qsearch(current_state, isMaximizing, alpha, beta, depth = 3) :
                 np_board[init] = np_board[dest]
                 np_board[dest] = buffer
                 buffer = UI.empty
-
                 current_state = np_board, white_pieces, black_pieces, castling_rights
         
                 continue
-
         if depth == 0 or isQuiet(current_state, not isMaximizing) :
             next_best_move, next_best_score = [], evaluation(current_state)
         else :
             next_best_move, next_best_score = qsearch(current_state, not isMaximizing, alpha, beta, depth - 1)
-
         if isMaximizing :
             white_pieces[i] = init
             if ind >= 0 :
@@ -378,7 +364,6 @@ def qsearch(current_state, isMaximizing, alpha, beta, depth = 3) :
         np_board[init] = np_board[dest]
         np_board[dest] = buffer
         buffer = UI.empty
-
         current_state = np_board, white_pieces, black_pieces, castling_rights
         
         if (isMaximizing and best_score < next_best_score) or (not isMaximizing and best_score > next_best_score) :
@@ -389,13 +374,10 @@ def qsearch(current_state, isMaximizing, alpha, beta, depth = 3) :
             alpha = best_score
         if (not isMaximizing and best_score < beta) :
             beta = best_score
-
         if (isMaximizing and best_score >= beta) or (not isMaximizing and best_score <= alpha) :
             break     
-
     if abs(best_score) > 500 : 
         best_score = evaluation(current_state)
-
     return best_move, best_score
 '''
 '''
@@ -409,22 +391,17 @@ def evaluation(current_state) :
     n_pieces = 0
     ## Mobility of pieces
     m_pieces = 0.2
-
     np_board, white_pieces, black_pieces, castling_rights = current_state
-
     # score1 : material
     # score2 : mobility
     # score3 : check
     score1, score2, score3 = 0, 0, 0
-
     ## Check State
     if UI.board_check(np_board, white_pieces, black_pieces, UI.white >> 3) : score3 = -500
     elif UI.board_check(np_board, white_pieces, black_pieces, UI.black >> 3) : score3 = 500
-
     ## Mobility based evaluation    
     localLegalMoves1 = UI.getFreeBoardLegalMoves(np_board, white_pieces, black_pieces, UI.white >> 3)
     localLegalMoves2 = UI.getFreeBoardLegalMoves(np_board, white_pieces, black_pieces, UI.black >> 3)
-
     for move1 in localLegalMoves1 :
         index = move1[0]
         piece = np_board[white_pieces[index]]
@@ -446,7 +423,6 @@ def evaluation(current_state) :
             score2 += eval_matrix[4]
         elif piece == UI.king :
             score2 += eval_matrix[5]
-
     for move2 in localLegalMoves2 :        
         index = move2[0]
         piece = np_board[black_pieces[index]]
@@ -468,7 +444,6 @@ def evaluation(current_state) :
             score2 -= eval_matrix[4]
         elif piece == UI.king :
             score2 -= eval_matrix[5]
-
     return score3 * c_state + score2 * m_pieces + score1 * n_pieces
 '''
 
@@ -493,19 +468,14 @@ def evaluation2_0(board : chess.Board, hash_ind : int) -> float :
     '''
     bpawn_mask = bb_mask(board.pawns & black)
     wpawn_mask = bb_mask(board.pawns & white)
-
     bknight_mask = bb_mask(board.knights & black)
     wknight_mask = bb_mask(board.knights & white)
-
     bbishop_mask = bb_mask(board.bishops & black)
     wbishop_mask = bb_mask(board.bishops & white)
-
     brook_mask = bb_mask(board.rooks & black)
     wrook_mask = bb_mask(board.rooks & white)
-
     bqueen_mask = bb_mask(board.queens & black)
     wqueen_mask = bb_mask(board.queens & white)
-
     bking_mask = bb_mask(board.kings & black)
     wking_mask = bb_mask(board.kings & white)
     '''
@@ -710,7 +680,6 @@ def evaluation2_0(board : chess.Board, hash_ind : int) -> float :
     mg_material_value += -(brook_mask * mg_b_rook_table).sum() + (wrook_mask * mg_w_rook_table).sum() 
     mg_material_value += -(bqueen_mask * mg_b_queen_table).sum() + (wqueen_mask * mg_w_queen_table).sum() 
     mg_material_value += -(bking_mask * mg_b_king_table).sum() + (wking_mask * mg_w_king_table).sum() 
-
     #  eg_eval
     eg_material_value += -(bpawn_mask * eg_b_pawn_table).sum() + (wpawn_mask * eg_w_pawn_table).sum() 
     eg_material_value += -(bknight_mask * eg_b_knight_table).sum() + (wknight_mask * eg_w_knight_table).sum()
@@ -771,14 +740,11 @@ def ordering_heuristics(board : chess.Board, moves : chess.LegalMoveGenerator) :
         if mypiece.piece_type != chess.KING :
             # Attack on the piece
             attackers = board.attackers(enemyColor, move.to_square)
-
             for attacker in attackers :
                 score -= 2.5 * attack_matrix[board.piece_type_at(attacker) - 1]
-
             # Protection of the piece
         
             attackers = board.attackers(myColor, move.to_square)
-
             for attacker in attackers :
                 if attacker != move.from_square : 
                     score += 2.5 * attack_matrix[board.piece_type_at(attacker) - 1]
@@ -871,14 +837,11 @@ def evaluation(board : chess.Board, hash_ind : int) :
 
     '''
     moves = board.generate_pseudo_legal_moves()
-
     for move in moves :
         piece = board.piece_at(move.from_square)
         score += [-1, 1][piece.color] * mobility_matrix[piece.piece_type - 1]    
-
     board.turn = not board.turn
     moves = board.generate_pseudo_legal_moves()
-
     for move in moves :
         piece = board.piece_at(move.from_square)
         score += [-1, 1][piece.color] * mobility_matrix[piece.piece_type - 1]    
@@ -1123,7 +1086,6 @@ print('Time taken = ', end - start, 'ms')
 
 '''
 # print('current evaluation : ', evaluation(board, init_hash(board)))
-
 start = time.time()
 for i in range(1000) :
     l, moves = ordering_heuristics(board, board.legal_moves)
@@ -1143,7 +1105,6 @@ for move in moves :
     print('Move Eval, board eval : ', me, evaluation2_0(board, init_hash(board)))
     print('--------')
     board.pop()
-
 # print('eval : ', evaluation(board, 0))
 '''
 
@@ -1152,45 +1113,35 @@ start = time.time()
 for i in range(1) :
     n = evaluation2_0(board, init_hash)
 end = time.time()
-
 print("time taken, evaluation = ", (end - start), n)
 '''
 
 '''
 print("Stages of Board : \n")
-
 board.push_uci('c3b1')
 print(board)
 print('--------')
-
 board.push_uci('e8d7')
 print(board)
 print('--------')
-
 board.push_uci('f1d3')
 print(board)
 print('--------')
-
 board.push_uci('g7g6')
 print(board)
 print('--------')
-
 board.push_uci('d1f3')
 print(board)
 print('--------')
-
 board.push_uci('f6e4')
 print(board)
 print('--------')
-
 board.push_uci('f3f7')
 print(board)
 print('--------')
-
 board.push_uci('e4f2')
 print(board)
 print('--------')
-
 print()
 '''
 
